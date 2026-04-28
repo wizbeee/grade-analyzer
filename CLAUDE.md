@@ -85,6 +85,15 @@ grade-analyzer/
 - `openCommandPalette` / `commandPaletteCommands` — 명령 팔레트
 - `loadDemoData` — 샘플 데이터 생성
 
+## 진로진학부 보고서 (15-시트 묶음 .xlsx 출력)
+- **트리거**: 헤더 내보내기 메뉴 → "📑 진로진학부 보고서 (.xlsx)" / 명령 팔레트
+- **함수**: `exportCounselReport()` → `CounselReport.buildAll(records)`
+- **입력 파서**: `parseFormatA()` (예상등급컷 RAW 단일 헤더), `parseFormatB()` (통합양식 2행 병합 헤더, 학년도/표점/백분위 포함). `processUploadedFiles`에서 Wide/Long 폴백 전 우선 시도. 입력/저장 시트 등 중복은 dedup 단계에서 제거.
+- **회차 메타**: 업로드 항목별 `sessionLabel` (3월/6월/9월/수능 등) — 직전평가 비교 시트 기준점
+- **출력 시트** (학년·시점에 따라 자동 생략): 종합상위권 명단, (국어/수학/영어) 1등급 명단, 직전평가 비교(3학년), 사탐선택자 분석(3학년), 고대 최저 충족자(3학년), 국어/수학/영어/사탐/과탐/한국사 분석
+- **계열 판정**: `classifyTanguTrack(탐구1, 탐구2)` — 둘 다 사회 → 문과, 둘 다 과학 → 이과, 그 외 혼합
+- **참조 기준 파일**: `2026 3월 실채점결과 분석(진로진학부) 공유용.xlsx`
+
 ## 알려진 이슈 & TODO
 - 사용자 실제 엑셀 데이터로 파싱 검증 필요 (컬럼명 변형 가능성)
 - Wide 포맷에서 표준점수/백분위/등급 등 부가 데이터 추출 미지원 (원점수만)
