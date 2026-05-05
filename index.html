@@ -668,6 +668,96 @@ svg { display: block; }
 }
 
 /* ============================================================
+   REPORT OPTIONS MODAL
+   ============================================================ */
+.ro-section {
+  border-top: 1px solid var(--border);
+  padding: 16px 0;
+}
+.ro-section:first-child { border-top: none; padding-top: 4px; }
+.ro-section-head {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 10px;
+}
+.ro-section-title {
+  font-size: 11px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--text-muted);
+}
+.ro-bulk { display: flex; gap: 4px; }
+.ro-bulk .btn { font-size: 11px; padding: 3px 8px; }
+
+.ro-group {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  margin-bottom: 8px;
+}
+.ro-group-label {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+.ro-group-count {
+  font-size: 11px; color: var(--text-subtle);
+  font-family: var(--font-mono);
+}
+.ro-group-items {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 4px 12px;
+  padding-left: 8px;
+  border-left: 2px solid var(--border);
+}
+.ro-checkbox {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 3px 0;
+  user-select: none;
+}
+.ro-checkbox input[type="checkbox"] {
+  width: 14px; height: 14px; accent-color: var(--text);
+  cursor: pointer;
+}
+.ro-checkbox span { color: var(--text); }
+
+.ro-row {
+  display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end;
+  margin-bottom: 8px;
+}
+.ro-field {
+  display: flex; flex-direction: column; gap: 4px;
+  min-width: 200px;
+}
+.ro-field-label {
+  font-size: 11px; color: var(--text-muted); font-weight: 500;
+}
+.ro-field input, .ro-field select {
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13px;
+}
+.ro-field input:focus, .ro-field select:focus {
+  outline: none;
+  border-color: var(--text);
+}
+.ro-filename-preview {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 10px;
+  background: var(--bg);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+}
+.ro-filename-preview code {
+  font-family: var(--font-mono); font-size: 11px;
+  color: var(--text); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* ============================================================
    REPORT PREVIEW MODAL
    ============================================================ */
 .rp-mode-toggle {
@@ -3015,6 +3105,7 @@ svg { display: block; }
     <div class="modal-body">
       <h3 style="font-size:var(--text-base);margin:0 0 12px">키보드 단축키</h3>
       <div class="shortcut-list">
+        <div class="shortcut-row"><span>보고서 옵션 설정</span><kbd>Ctrl + ,</kbd></div>
         <div class="shortcut-row"><span>보고서 미리보기 (Excel/PPT)</span><kbd>Ctrl + B</kbd></div>
         <div class="shortcut-row"><span>입학 홍보팀 Excel 분석</span><kbd>Ctrl + E</kbd></div>
         <div class="shortcut-row"><span>입학 홍보팀 PPT 보고서</span><kbd>Ctrl + P</kbd></div>
@@ -3084,6 +3175,25 @@ svg { display: block; }
       placeholder="학생 이름, 학번, '1-3' (반-번호), 또는 'ㄱㄷㅇ' 초성 입력..."
       aria-label="학생 검색" oninput="renderStudentSearch(this.value)" />
     <div class="cmd-list" id="studentSearchList" style="max-height: 60vh"></div>
+  </div>
+</div>
+
+<!-- Report Options Modal — customize before download/preview -->
+<div class="modal-overlay" id="reportOptionsModal" onclick="if(event.target===this)closeReportOptions()">
+  <div class="modal" id="reportOptionsBox" style="max-width: 720px; width: 100%;">
+    <div class="modal-header">
+      <h2>보고서 옵션</h2>
+      <button class="modal-close" onclick="closeReportOptions()" aria-label="닫기">×</button>
+    </div>
+    <div class="modal-body" id="reportOptionsBody" style="max-height: 70vh; overflow: auto;"></div>
+    <div class="modal-footer" style="display:flex;justify-content:space-between;gap:8px;padding:12px 18px;border-top:1px solid var(--border)">
+      <button class="btn btn-ghost" onclick="onReportOptionsReset()">기본값으로</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-secondary" onclick="onReportOptionsApply('preview')">미리보기 →</button>
+        <button class="btn btn-secondary" onclick="onReportOptionsApply('pptx')">PPT 다운로드</button>
+        <button class="btn btn-primary" onclick="onReportOptionsApply('xlsx')">Excel 다운로드</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -3363,7 +3473,58 @@ let state = {
   sidebarCollapsed: false,
   filters: { years: [], sessions: [], grades: [], classes: [], subjects: [], genders: [], tracks: [] },
   whatIf: { subject: null, delta: 0 },
+  reportOptions: null,  // loaded lazily from LocalStorage
 };
+
+/* ============================================================
+   REPORT OPTIONS — user customization for Excel/PPT report
+   ============================================================ */
+const REPORT_OPTIONS_KEY = 'grade-analyzer-report-options-v1';
+const REPORT_OPTIONS_DEFAULT = {
+  // Sheets to include (true = include). Keys match CounselReport sheet names.
+  includeSheets: {
+    '종합상위권 명단': true,
+    '국어 1등급 명단': true, '수학 1등급 명단': true, '영어 1등급 명단': true,
+    '사탐 1등급 명단': true, '과탐 1등급 명단': true, '한국사 1등급 명단': true,
+    '직전평가 비교(3학년)': true, '사탐선택자 분석(3학년)': true, '고대 최저 충족자(3학년)': true,
+    '국어분석': true, '수학분석': true, '영어분석': true,
+    '사탐분석': true, '과탐분석': true, '한국사분석': true,
+    '기수별 비교': true,
+    '정리시트': true, '등급참곳값': true,
+  },
+  topN: 30,                          // 종합상위권 Top N
+  primaryCohort: null,               // null = auto (latest), '12기' / '11기' etc.
+  applyFilters: false,               // use filtered data vs full
+  filenameSuffix: '',                // appended to default filename
+  ppt: {
+    includeCover: true,
+    includeSubjects: true,           // 6 subject cohort slides
+    includeRosters: true,            // 1등급 명단 slides
+    rosterTopN: 28,
+  },
+};
+function loadReportOptions() {
+  try {
+    const raw = localStorage.getItem(REPORT_OPTIONS_KEY);
+    if (!raw) return JSON.parse(JSON.stringify(REPORT_OPTIONS_DEFAULT));
+    const saved = JSON.parse(raw);
+    return Object.assign({}, REPORT_OPTIONS_DEFAULT, saved, {
+      includeSheets: Object.assign({}, REPORT_OPTIONS_DEFAULT.includeSheets, saved.includeSheets || {}),
+      ppt: Object.assign({}, REPORT_OPTIONS_DEFAULT.ppt, saved.ppt || {}),
+    });
+  } catch (e) { return JSON.parse(JSON.stringify(REPORT_OPTIONS_DEFAULT)); }
+}
+function saveReportOptions() {
+  try { localStorage.setItem(REPORT_OPTIONS_KEY, JSON.stringify(state.reportOptions)); } catch (e) {}
+}
+function resetReportOptions() {
+  state.reportOptions = JSON.parse(JSON.stringify(REPORT_OPTIONS_DEFAULT));
+  saveReportOptions();
+}
+function ensureReportOptions() {
+  if (!state.reportOptions) state.reportOptions = loadReportOptions();
+  return state.reportOptions;
+}
 
 /* ============================================================
    AUTO-SAVE — persists analysis state across browser sessions.
@@ -3433,10 +3594,12 @@ function getAutoSavedSummary() {
     const ago = Math.round((Date.now() - p.savedAt) / 60000);
     const periods = [...new Set(p.parsedData.map(r => `${r.year}-${r.session || '?'}`))];
     const grades = [...new Set(p.parsedData.map(r => r.grade).filter(Boolean))].sort();
+    const cohorts = [...new Set(p.parsedData.map(r => r.cohort).filter(Boolean))].sort();
     return {
       records: p.parsedData.length,
       periods,
       grades,
+      cohorts,
       fileNames: fileMeta.map(f => f.name),
       ago,                              // minutes
       savedAt: p.savedAt,
@@ -3467,6 +3630,7 @@ function renderAutoRestoreCard() {
   const agoText = s.ago < 1 ? '방금 전' : s.ago < 60 ? `${s.ago}분 전` : s.ago < 1440 ? `${Math.round(s.ago/60)}시간 전` : `${Math.round(s.ago/1440)}일 전`;
   const periodsText = s.periods.slice(0, 3).join(', ') + (s.periods.length > 3 ? ` 외 ${s.periods.length-3}건` : '');
   const gradesText = s.grades.length ? s.grades.map(g => `${g}학년`).join('·') : '';
+  const cohortsText = s.cohorts && s.cohorts.length ? s.cohorts.join('·') : '';
   const filesText = s.fileNames.length ? `${s.fileNames.length}개 파일` : '';
   sec.classList.remove('hidden');
   sec.innerHTML = `
@@ -3479,6 +3643,7 @@ function renderAutoRestoreCard() {
         <div class="restore-card-meta">
           <span class="restore-meta-item">${agoText}</span>
           <span class="restore-meta-item">${s.records.toLocaleString()}건</span>
+          ${cohortsText ? `<span class="restore-meta-item">${cohortsText}</span>` : ''}
           ${gradesText ? `<span class="restore-meta-item">${gradesText}</span>` : ''}
           ${periodsText ? `<span class="restore-meta-item">${periodsText}</span>` : ''}
           ${filesText ? `<span class="restore-meta-item">${filesText}</span>` : ''}
@@ -3926,6 +4091,7 @@ const ICON_SPARKLE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
 const ICON_SEARCH  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>';
 const ICON_UNIV    = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3L2 9l10 6 10-6-10-6z"/><path d="M6 11.5V17a6 6 0 0012 0v-5.5"/></svg>';
 const ICON_PREVIEW = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+const ICON_OPTIONS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>';
 
 function renderSidebar() {
   const body = document.getElementById('sidebarBody');
@@ -4015,6 +4181,10 @@ function renderSidebarResults() {
   return `
     <div class="sidebar-section">
       <div class="sidebar-section-label">보고서</div>
+      <button class="sidebar-item" onclick="openReportOptions()" title="Ctrl+, — 시트/Top N/기수/필터 등 옵션 조정">
+        ${ICON_OPTIONS}<span class="sidebar-item-label">옵션 설정</span>
+        <span class="sidebar-item-shortcut">⌘,</span>
+      </button>
       <button class="sidebar-item" onclick="openReportPreview('xlsx')" title="Ctrl+B — 다운로드 전 미리 보기">
         ${ICON_PREVIEW}<span class="sidebar-item-label">미리보기</span>
         <span class="sidebar-item-shortcut">⌘B</span>
@@ -4671,36 +4841,46 @@ function parseFormatA(matrix, ctx) {
 
 // Format B — 2-row merged header (category row + sub-field row) with 학년도 column
 function parseFormatB(matrix, ctx) {
-  // Find two consecutive rows where row N has 학년도/학년/반/번호/이름 and one of subject categories,
-  // and row N+1 has sub-fields (원점수/등급/표준점수/백분위/영역/과목명/선택)
+  // 두 가지 패턴 모두 지원:
+  //   Pattern 1 (통합양식): row N has [학년도/학년/반/번호/이름 + 카테고리(한국사/국어...)] + row N+1 has sub-fields
+  //   Pattern 2 (기수 종합): row N has 카테고리만 + row N+1 has [기수/학년/반/번호/이름 + sub-fields]
   const cats = ['한국사', '국어', '수학', '영어', '탐구영역1', '탐구영역2', '탐구1', '탐구2'];
   const subFields = ['원점수', '등급', '표준점수', '백분위', '영역', '과목명', '선택'];
-  let catRow = -1, subRow = -1;
+  let catRow = -1, subRow = -1, baseRow = -1;
   for (let i = 0; i < Math.min(matrix.length - 1, 12); i++) {
     const a = (matrix[i] || []).map(x => String(x ?? '').replace(/\s+/g, ''));
     const b = (matrix[i + 1] || []).map(x => String(x ?? '').replace(/\s+/g, ''));
-    const aHasBase = ['학년', '반', '번호', '이름'].every(k => a.includes(k));
+    const baseKeys = ['학년', '반', '번호', '이름'];
+    const aHasBase = baseKeys.every(k => a.includes(k));
+    const bHasBase = baseKeys.every(k => b.includes(k));
     const aHasCat = cats.some(c => a.includes(c));
     const bHasSub = subFields.filter(s => b.includes(s)).length >= 3;
-    if (aHasBase && aHasCat && bHasSub) { catRow = i; subRow = i + 1; break; }
+    if (aHasCat && bHasSub && (aHasBase || bHasBase)) {
+      catRow = i; subRow = i + 1;
+      baseRow = aHasBase ? i : i + 1;  // base columns may live on either row
+      break;
+    }
   }
   if (catRow < 0) return null;
 
   const cat = (matrix[catRow] || []).map(x => String(x ?? '').replace(/\s+/g, ''));
   const sub = (matrix[subRow] || []).map(x => String(x ?? '').replace(/\s+/g, ''));
+  const base = (matrix[baseRow] || []).map(x => String(x ?? '').replace(/\s+/g, ''));
 
   // Forward-fill category cells (merged-cell pattern: only first cell has the label)
   for (let i = 1; i < cat.length; i++) {
     if (cat[i] === '' && cat[i - 1] !== '') cat[i] = cat[i - 1];
   }
 
-  // Base columns are in cat row only (sub row is empty for them)
+  // Base columns: search the row that has them (may be catRow or subRow)
+  const colOfBase = (k) => base.findIndex(c => c === k);
   const colOfCat = (k) => cat.findIndex(c => c === k);
-  const cYear = colOfCat('학년도');
-  const cGrade = colOfCat('학년');
-  const cClass = colOfCat('반');
-  const cNo = colOfCat('번호');
-  const cName = colOfCat('이름');
+  const cYear = colOfBase('학년도');
+  const cKisu = colOfBase('기수');     // multi-cohort file (e.g., "12기")
+  const cGrade = colOfBase('학년');
+  const cClass = colOfBase('반');
+  const cNo = colOfBase('번호');
+  const cName = colOfBase('이름');
   if (cName < 0 || cGrade < 0) return null;
 
   // Build subject groups by scanning cat for known categories
@@ -4722,20 +4902,42 @@ function parseFormatB(matrix, ctx) {
 
   // Data starts the row after subRow (R3 in spec). Some files have an example row at subRow+1; we skip rows whose 학년 isn't numeric.
   // Year-precedence policy:
-  //   - if user explicitly entered yearLabel (yearAuto=false in caller) → ctx.year always wins
-  //   - otherwise → cell 학년도 column wins (per-record), with ctx.year as fallback
+  //   - if user explicitly entered yearLabel (yearAuto=false in caller) → ctx.year always wins (single-period override)
+  //   - else if 학년도 cell present → use cell value
+  //   - else if 기수 cell present → map (max 기수) to ctx.year, others offset by -1 year per generation
+  //   - fallback → ctx.year
   const userOverride = ctx.userYearOverride === true;
+
+  // Pre-scan 기수 if present to find the max kisu (latest cohort)
+  let maxKisu = null;
+  if (cKisu >= 0) {
+    for (let r = subRow + 1; r < matrix.length; r++) {
+      const row = matrix[r] || [];
+      const k = parseKisu(row[cKisu]);
+      if (k != null && (maxKisu == null || k > maxKisu)) maxKisu = k;
+    }
+  }
+  const hasMultiKisu = cKisu >= 0 && maxKisu != null;
+
   const records = [];
   for (let r = subRow + 1; r < matrix.length; r++) {
     const row = matrix[r] || [];
     const yearV = cYear >= 0 ? toNum(row[cYear]) : null;
+    const kisuV = hasMultiKisu ? parseKisu(row[cKisu]) : null;
     const grade = toNum(row[cGrade]);
     if (!grade) continue;  // example/comment rows have non-numeric 학년
     const name = row[cName]; if (name == null || name === '') continue;
     const className = String(row[cClass] ?? '').trim();
     const studentNo = String(row[cNo] ?? '').trim();
     const studentId = `${grade}_${className}_${studentNo}`;
-    const recYear = userOverride ? ctx.year : (yearV || ctx.year);
+    // If file has 기수 column → derive year from kisu (latest kisu = ctx.year, others offset)
+    // Otherwise use 학년도 cell or ctx.year per existing policy
+    let recYear;
+    if (userOverride && !hasMultiKisu) recYear = ctx.year;
+    else if (hasMultiKisu && kisuV != null) recYear = ctx.year - (maxKisu - kisuV);
+    else recYear = yearV || ctx.year;
+    // Make studentId cohort-unique to avoid collision across kisu when 학년/반/번호 repeat
+    const recStudentId = hasMultiKisu && kisuV != null ? `${kisuV}기_${studentId}` : studentId;
     for (const [label, g] of Object.entries(groups)) {
       const rawScore = g.rawCol >= 0 ? toNum(row[g.rawCol]) : null;
       const grade9 = g.gradeCol >= 0 ? toNum(row[g.gradeCol]) : null;
@@ -4745,8 +4947,9 @@ function parseFormatB(matrix, ctx) {
         ? String(row[g.subjectChoiceCol]).trim() || null : null;
       if (rawScore == null && grade9 == null && standardScore == null && percentile == null) continue;
       records.push({
-        studentId, studentName: String(name).trim(), className, studentNo,
+        studentId: recStudentId, studentName: String(name).trim(), className, studentNo,
         grade, year: recYear, session: ctx.session, examType: 'mock',
+        cohort: hasMultiKisu && kisuV != null ? `${kisuV}기` : null,
         subjectGroup: label, subject: label,
         subjectChoice, rawScore, grade9, standardScore, percentile,
         units: null, subjectAvg: null, subjectStdDev: null, achievement: null,
@@ -4755,7 +4958,20 @@ function parseFormatB(matrix, ctx) {
     }
   }
   applyTrackFromTangu(records);
-  return { records, format: 'FormatB', headerRow: catRow + 1, groupCount: Object.keys(groups).length };
+  return {
+    records,
+    format: hasMultiKisu ? 'FormatB+기수' : 'FormatB',
+    headerRow: catRow + 1,
+    groupCount: Object.keys(groups).length,
+    cohortCount: hasMultiKisu ? new Set(records.map(r => r.cohort).filter(Boolean)).size : 0,
+  };
+}
+
+// "12기" / "11기" / "12" → 12 (number). Returns null if no valid kisu.
+function parseKisu(v) {
+  if (v == null || v === '') return null;
+  const m = String(v).match(/(\d+)\s*기?/);
+  return m ? +m[1] : null;
 }
 
 function applyTrackFromTangu(records) {
@@ -4843,20 +5059,25 @@ async function processUploadedFiles() {
           }
         }
         if (formatHit) {
-          // 실제 적용된 학년도들 (사용자 입력 vs 셀값 어느게 우선됐는지)
           const appliedYears = [...new Set(formatHit.records.map(r => r.year))].sort();
-          const yearNote = ctxFmt.userYearOverride
-            ? `학년도=${ctxFmt.year} (사용자 입력 우선)`
-            : (appliedYears.length === 1 && appliedYears[0] === ctxFmt.year)
-              ? `학년도=${ctxFmt.year}`
-              : `학년도=${appliedYears.join('/')} (셀값 사용; 파일명 추정=${ctxFmt.year})`;
+          const cohorts = [...new Set(formatHit.records.map(r => r.cohort).filter(Boolean))].sort();
+          let yearNote;
+          if (cohorts.length > 0) {
+            yearNote = `기수=${cohorts.join('/')} (학년도 ${appliedYears.join('/')})`;
+          } else if (ctxFmt.userYearOverride) {
+            yearNote = `학년도=${ctxFmt.year} (사용자 입력 우선)`;
+          } else if (appliedYears.length === 1 && appliedYears[0] === ctxFmt.year) {
+            yearNote = `학년도=${ctxFmt.year}`;
+          } else {
+            yearNote = `학년도=${appliedYears.join('/')} (셀값 사용; 파일명 추정=${ctxFmt.year})`;
+          }
           diagnostics.push({
             file: uploaded.file.name, sheet: sheetName,
             format: formatHit.format, examType: 'mock',
             rowCount: rows.length,
             subjects: [...new Set(formatHit.records.map(r => r.subjectGroup))],
             added: formatHit.records.length,
-            note: `${yearNote}${ctxFmt.session ? ', 회차=' + ctxFmt.session : ''}, 그룹=${formatHit.groupCount}`,
+            note: `${yearNote}${ctxFmt.session ? ', 회차=' + ctxFmt.session : ''}, 그룹=${formatHit.groupCount}${formatHit.cohortCount ? ', 기수 ' + formatHit.cohortCount + '개' : ''}`,
           });
           continue;
         }
@@ -5451,6 +5672,8 @@ function renderContextBar() {
       <span class="context-pill"><span class="context-pill-key">점수</span><strong>${scoreSrc}</strong></span>
     </div>
     <div class="context-bar-actions">
+      <button class="context-cta context-cta-ghost" onclick="openReportOptions()"
+              aria-label="보고서 옵션 설정 (단축키 Ctrl+,)" title="Ctrl+,"><span>옵션</span><kbd>⌘,</kbd></button>
       <button class="context-cta context-cta-ghost" onclick="openReportPreview('xlsx')"
               aria-label="보고서 미리보기 (단축키 Ctrl+B)" title="Ctrl+B"><span>미리보기</span><kbd>⌘B</kbd></button>
       <button class="context-cta" onclick="exportCounselReport()"
@@ -5953,7 +6176,7 @@ function renderGroupSummaryCharts(data) {
       data: {
         labels: visibleSubjects,
         datasets: [{
-          label: '우수도 (10 - 평균등급)',
+          label: '평균 등급 (막대가 길수록 우수)',
           data: gradeMeans.map(v => v == null ? null : (10 - v)),
           backgroundColor: visibleSubjects.map((_, i) => subjectColors[i % subjectColors.length] + 'CC'),
           borderRadius: 4,
@@ -7088,8 +7311,15 @@ function corrInterpret(r) {
    ============================================================ */
 function renderGroupStudent(data) {
   const students = [...new Map(
-    data.filter(d => d.studentId).map(d => [d.studentId, { id: d.studentId, name: d.studentName, className: d.className }])
-  ).values()].sort((a, b) => (a.className || '').localeCompare(b.className || '') || (a.id || '').localeCompare(b.id || ''));
+    data.filter(d => d.studentId).map(d => [d.studentId, {
+      id: d.studentId, name: d.studentName, className: d.className,
+      cohort: d.cohort, grade: d.grade,
+    }])
+  ).values()].sort((a, b) => {
+    // Sort by cohort (descending — newest first), then class, then id
+    if ((a.cohort || '') !== (b.cohort || '')) return (b.cohort || '').localeCompare(a.cohort || '');
+    return (a.className || '').localeCompare(b.className || '') || (a.id || '').localeCompare(b.id || '');
+  });
 
   if (!students.length) {
     return `<div class="empty-state"><div class="empty-icon" aria-hidden="true"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.45-6.89A2 2 0 0016.76 4H7.24a2 2 0 00-1.79 1.11z"/></svg></div><div>학생 식별 정보가 없어 개별 조회를 할 수 없습니다.</div></div>`;
@@ -7110,7 +7340,7 @@ function renderGroupStudent(data) {
           <label class="field-inline">
             <span class="field-inline-label">학생</span>
             <select id="studentPicker" class="select" onchange="onStudentPickerChange(this.value)" style="min-width: 200px">
-              ${students.map(s => `<option value="${escapeHtml(s.id)}" ${s.id === state.studentSelection ? 'selected' : ''}>${escapeHtml(s.className || '')} · ${escapeHtml(s.name || s.id)}</option>`).join('')}
+              ${students.map(s => `<option value="${escapeHtml(s.id)}" ${s.id === state.studentSelection ? 'selected' : ''}>${s.cohort ? '[' + escapeHtml(s.cohort) + '] ' : ''}${s.grade ? s.grade + '학년 ' : ''}${escapeHtml(s.className || '')}반 · ${escapeHtml(s.name || s.id)}</option>`).join('')}
             </select>
           </label>
         </div>
@@ -8672,14 +8902,25 @@ const CounselReport = (() => {
   // ----- main entry -----
   function buildAll(records, opts = {}) {
     if (!records || records.length === 0) return null;
+    const include = opts.includeSheets || null;  // optional sheet inclusion filter
+    const topN = opts.topN || 30;
+    const primaryCohort = opts.primaryCohort || null;
     const periods = [...groupByPeriod(records).keys()].map(k => {
       const [y, s] = k.split('|'); return { year: +y, session: s };
     });
-    const cur = pickLatestPeriod(records);
+    // Determine "current" period: if primaryCohort set, use the year for that cohort; else latest
+    let cur;
+    if (primaryCohort) {
+      const cohortRecs = records.filter(r => r.cohort === primaryCohort);
+      if (cohortRecs.length > 0) cur = pickLatestPeriod(cohortRecs);
+    }
+    if (!cur) cur = pickLatestPeriod(records);
     // 핵심: 보고서의 명단/분포/3학년 시트는 모두 "최신 회차"만 대상으로 한다.
     // 부록(정리시트/등급참곳값)만 전체 데이터 사용.
     const inPeriod = (r, p) => r.year === p.year && (r.session || '') === (p.session || '');
     const currentRecords = records.filter(r => inPeriod(r, cur));
+    // Helper: include a sheet only if include filter allows it
+    const shouldInclude = (name) => !include || include[name] !== false;
     // Find prior period (same grade scope) for senior comparison
     const priorOfSameYear = periods.filter(p => p.year === cur.year && p.session !== cur.session)
       .sort((a, b) => rankSession(b.session) - rankSession(a.session))
@@ -8689,42 +8930,48 @@ const CounselReport = (() => {
 
     const sheets = {};
 
-    // 명단 4종 — 최신 회차만
-    const ts = buildTopStudents(currentRecords); if (ts) sheets['종합상위권 명단'] = ts;
-    const koR = buildGrade1Roster(currentRecords, '국어'); if (koR) sheets['국어 1등급 명단'] = koR;
-    const maR = buildGrade1Roster(currentRecords, '수학'); if (maR) sheets['수학 1등급 명단'] = maR;
-    const enR = buildGrade1Roster(currentRecords, '영어'); if (enR) sheets['영어 1등급 명단'] = enR;
-    // 탐구·한국사 1등급 명단 (PPT 형식 + 사용자 요청)
-    const saR = buildGrade1Roster(currentRecords, '사탐'); if (saR) sheets['사탐 1등급 명단'] = saR;
-    const scR = buildGrade1Roster(currentRecords, '과탐'); if (scR) sheets['과탐 1등급 명단'] = scR;
-    const hkR = buildGrade1Roster(currentRecords, '한국사'); if (hkR) sheets['한국사 1등급 명단'] = hkR;
+    // 명단 4종 + 탐구/한국사 — 최신 회차만, includeSheets 적용
+    if (shouldInclude('종합상위권 명단')) {
+      const ts = buildTopStudents(currentRecords, { topN }); if (ts) sheets['종합상위권 명단'] = ts;
+    }
+    if (shouldInclude('국어 1등급 명단')) { const r = buildGrade1Roster(currentRecords, '국어'); if (r) sheets['국어 1등급 명단'] = r; }
+    if (shouldInclude('수학 1등급 명단')) { const r = buildGrade1Roster(currentRecords, '수학'); if (r) sheets['수학 1등급 명단'] = r; }
+    if (shouldInclude('영어 1등급 명단')) { const r = buildGrade1Roster(currentRecords, '영어'); if (r) sheets['영어 1등급 명단'] = r; }
+    if (shouldInclude('사탐 1등급 명단')) { const r = buildGrade1Roster(currentRecords, '사탐'); if (r) sheets['사탐 1등급 명단'] = r; }
+    if (shouldInclude('과탐 1등급 명단')) { const r = buildGrade1Roster(currentRecords, '과탐'); if (r) sheets['과탐 1등급 명단'] = r; }
+    if (shouldInclude('한국사 1등급 명단')) { const r = buildGrade1Roster(currentRecords, '한국사'); if (r) sheets['한국사 1등급 명단'] = r; }
 
-    // 3학년 특화 (3학년 데이터가 있을 때만) — 직전평가 비교는 records (multi-period 필요), 나머지는 currentRecords
+    // 3학년 특화 (3학년 데이터가 있을 때만)
     const has3 = currentRecords.some(r => r.grade === 3);
     if (has3) {
-      if (priorOfSameYear) {
+      if (priorOfSameYear && shouldInclude('직전평가 비교(3학년)')) {
         const pc = buildPrevComparison(records, 3, cur, priorOfSameYear);
         if (pc) sheets['직전평가 비교(3학년)'] = pc;
       }
-      const sa = buildSocialAnalysis(currentRecords, 3);
-      if (sa) sheets['사탐선택자 분석(3학년)'] = sa;
-      const ku = buildKoreaUnivMinimum(currentRecords, opts.naesinMap || null);
-      if (ku) sheets['고대 최저 충족자(3학년)'] = ku;
+      if (shouldInclude('사탐선택자 분석(3학년)')) {
+        const sa = buildSocialAnalysis(currentRecords, 3); if (sa) sheets['사탐선택자 분석(3학년)'] = sa;
+      }
+      if (shouldInclude('고대 최저 충족자(3학년)')) {
+        const ku = buildKoreaUnivMinimum(currentRecords, opts.naesinMap || null); if (ku) sheets['고대 최저 충족자(3학년)'] = ku;
+      }
     }
 
-    // 과목별 분포 6종 — 좌측: 최신 회차, 우측: 전년 동기 cohort
+    // 과목별 분포 6종
     [['국어','국어분석'], ['수학','수학분석'], ['영어','영어분석'],
      ['사탐','사탐분석'], ['과탐','과탐분석'], ['한국사','한국사분석']].forEach(([key, sheetName]) => {
+      if (!shouldInclude(sheetName)) return;
       const rows = buildSubjectDistribution(currentRecords, key, priorCohortRecs);
       if (rows) sheets[sheetName] = rows;
     });
 
-    // 기수별/년도별 과목 분석 (multi-cohort) — PPT 형식
-    const cohort = buildCohortComparison(records); if (cohort) sheets['기수별 비교'] = cohort;
+    // 기수별/년도별 과목 분석 (multi-cohort)
+    if (shouldInclude('기수별 비교')) {
+      const cohort = buildCohortComparison(records); if (cohort) sheets['기수별 비교'] = cohort;
+    }
 
-    // 부록: 정리시트 (raw 데이터, 전체) + 등급참곳값 (등급 cutoff, 전체)
-    const raw = buildRawDataSheet(records); if (raw) sheets['정리시트'] = raw;
-    const cuts = buildGradeCutoffSheet(records); if (cuts) sheets['등급참곳값'] = cuts;
+    // 부록
+    if (shouldInclude('정리시트')) { const raw = buildRawDataSheet(records); if (raw) sheets['정리시트'] = raw; }
+    if (shouldInclude('등급참곳값')) { const cuts = buildGradeCutoffSheet(records); if (cuts) sheets['등급참곳값'] = cuts; }
 
     return { sheets, period: cur, currentRecordCount: currentRecords.length, totalRecordCount: records.length };
   }
@@ -8769,6 +9016,190 @@ const PCT_COLUMNS_BY_SHEET = {
 };
 
 /* ============================================================
+   REPORT OPTIONS MODAL — sheet selection, top-N, cohort, filters, filename
+   ============================================================ */
+const SHEET_GROUPS = [
+  { label: '명단', sheets: ['종합상위권 명단', '국어 1등급 명단', '수학 1등급 명단', '영어 1등급 명단', '사탐 1등급 명단', '과탐 1등급 명단', '한국사 1등급 명단'] },
+  { label: '분석 (등급분포)', sheets: ['국어분석', '수학분석', '영어분석', '사탐분석', '과탐분석', '한국사분석'] },
+  { label: '3학년 특화', sheets: ['직전평가 비교(3학년)', '사탐선택자 분석(3학년)', '고대 최저 충족자(3학년)'] },
+  { label: '비교·부록', sheets: ['기수별 비교', '정리시트', '등급참곳값'] },
+];
+
+function openReportOptions() {
+  if (!state.parsedData || state.parsedData.length === 0) {
+    toast('데이터 없음', '먼저 파일을 업로드하고 분석을 시작하세요', 'warning');
+    return;
+  }
+  ensureReportOptions();
+  document.getElementById('reportOptionsModal').classList.add('show');
+  renderReportOptions();
+}
+function closeReportOptions() {
+  document.getElementById('reportOptionsModal').classList.remove('show');
+}
+
+function renderReportOptions() {
+  const body = document.getElementById('reportOptionsBody'); if (!body) return;
+  const opts = ensureReportOptions();
+  // Available cohorts
+  const cohorts = [...new Set(state.parsedData.map(r => r.cohort).filter(Boolean))].sort().reverse();
+  // Available periods (for non-cohort files)
+  const periods = [...new Set(state.parsedData.map(r => `${r.year}-${r.session || '?'}`))].sort().reverse();
+
+  body.innerHTML = `
+    <!-- Sheet selection -->
+    <div class="ro-section">
+      <div class="ro-section-head">
+        <span class="ro-section-title">시트 선택</span>
+        <div class="ro-bulk">
+          <button class="btn btn-ghost btn-sm" onclick="onRoBulkSheets(true)">모두 선택</button>
+          <button class="btn btn-ghost btn-sm" onclick="onRoBulkSheets(false)">모두 해제</button>
+        </div>
+      </div>
+      ${SHEET_GROUPS.map(g => `
+        <div class="ro-group">
+          <div class="ro-group-label">
+            <label class="ro-checkbox">
+              <input type="checkbox" ${g.sheets.every(s => opts.includeSheets[s]) ? 'checked' : ''}
+                onchange="onRoGroupToggle(${JSON.stringify(g.sheets).replace(/"/g, '&quot;')}, this.checked)">
+              <span>${escapeHtml(g.label)}</span>
+            </label>
+            <span class="ro-group-count">${g.sheets.filter(s => opts.includeSheets[s]).length}/${g.sheets.length}</span>
+          </div>
+          <div class="ro-group-items">
+            ${g.sheets.map(s => `
+              <label class="ro-checkbox">
+                <input type="checkbox" ${opts.includeSheets[s] ? 'checked' : ''}
+                  onchange="onRoSheetToggle('${escapeHtml(s)}', this.checked)">
+                <span>${escapeHtml(s)}</span>
+              </label>
+            `).join('')}
+          </div>
+        </div>
+      `).join('')}
+    </div>
+
+    <!-- Top N + Primary cohort -->
+    <div class="ro-section">
+      <div class="ro-section-head"><span class="ro-section-title">상세 옵션</span></div>
+      <div class="ro-row">
+        <label class="ro-field">
+          <span class="ro-field-label">종합상위권 Top N</span>
+          <input type="number" min="5" max="100" step="5" value="${opts.topN}"
+            onchange="state.reportOptions.topN = +this.value || 30; saveReportOptions();">
+        </label>
+        ${cohorts.length > 1 ? `
+          <label class="ro-field">
+            <span class="ro-field-label">기준 기수 (현재 회차)</span>
+            <select onchange="state.reportOptions.primaryCohort = this.value || null; saveReportOptions();">
+              <option value="" ${!opts.primaryCohort ? 'selected' : ''}>자동 (가장 최신)</option>
+              ${cohorts.map(c => `<option value="${escapeHtml(c)}" ${opts.primaryCohort === c ? 'selected' : ''}>${escapeHtml(c)}</option>`).join('')}
+            </select>
+          </label>
+        ` : ''}
+      </div>
+      <div class="ro-row">
+        <label class="ro-checkbox" style="padding: 8px 0">
+          <input type="checkbox" ${opts.applyFilters ? 'checked' : ''}
+            onchange="state.reportOptions.applyFilters = this.checked; saveReportOptions();">
+          <span>현재 활성 필터 적용 (체크 안 하면 전체 데이터 사용)</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- PPT options -->
+    <div class="ro-section">
+      <div class="ro-section-head"><span class="ro-section-title">PPT 슬라이드 선택</span></div>
+      <div class="ro-row" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+        <label class="ro-checkbox">
+          <input type="checkbox" ${opts.ppt.includeCover ? 'checked' : ''}
+            onchange="state.reportOptions.ppt.includeCover = this.checked; saveReportOptions();">
+          <span>표지 슬라이드</span>
+        </label>
+        <label class="ro-checkbox">
+          <input type="checkbox" ${opts.ppt.includeSubjects ? 'checked' : ''}
+            onchange="state.reportOptions.ppt.includeSubjects = this.checked; saveReportOptions();">
+          <span>과목별 비교 (6장)</span>
+        </label>
+        <label class="ro-checkbox">
+          <input type="checkbox" ${opts.ppt.includeRosters ? 'checked' : ''}
+            onchange="state.reportOptions.ppt.includeRosters = this.checked; saveReportOptions();">
+          <span>1등급 명단 (3장)</span>
+        </label>
+      </div>
+      <div class="ro-row">
+        <label class="ro-field">
+          <span class="ro-field-label">명단 슬라이드 Top N</span>
+          <input type="number" min="5" max="50" step="1" value="${opts.ppt.rosterTopN}"
+            onchange="state.reportOptions.ppt.rosterTopN = +this.value || 28; saveReportOptions();">
+        </label>
+      </div>
+    </div>
+
+    <!-- Filename suffix -->
+    <div class="ro-section">
+      <div class="ro-section-head"><span class="ro-section-title">파일명</span></div>
+      <div class="ro-row">
+        <label class="ro-field" style="flex:1">
+          <span class="ro-field-label">접미사 (선택)</span>
+          <input type="text" maxlength="40" placeholder="예: 부장님_검토용"
+            value="${escapeHtml(opts.filenameSuffix || '')}"
+            onchange="state.reportOptions.filenameSuffix = this.value.trim(); saveReportOptions(); renderReportOptions();">
+        </label>
+      </div>
+      <div class="ro-filename-preview">
+        <span class="ro-field-label">미리보기:</span>
+        <code>${escapeHtml(buildReportFilename('xlsx'))}</code>
+      </div>
+    </div>
+  `;
+}
+
+function buildReportFilename(ext) {
+  const opts = ensureReportOptions();
+  const cohorts = [...new Set(state.parsedData.map(r => r.cohort).filter(Boolean))];
+  let primary;
+  if (opts.primaryCohort && cohorts.includes(opts.primaryCohort)) primary = opts.primaryCohort;
+  // Best-effort latest
+  const period = (typeof CounselReport !== 'undefined') ? CounselReport.pickLatestPeriod(state.parsedData) : { year: new Date().getFullYear(), session: '' };
+  const tag = primary || `${period.year}_${period.session || ''}`;
+  const suffix = opts.filenameSuffix ? `_${opts.filenameSuffix.replace(/[\\/:*?"<>|]/g, '')}` : '';
+  const today = new Date().toISOString().slice(0, 10);
+  return `입학홍보팀_${ext === 'xlsx' ? '분석' : 'PPT'}_${tag}_${today}${suffix}.${ext}`;
+}
+
+function onRoSheetToggle(sheet, checked) {
+  const opts = ensureReportOptions();
+  opts.includeSheets[sheet] = checked;
+  saveReportOptions();
+  renderReportOptions();
+}
+function onRoGroupToggle(sheets, checked) {
+  const opts = ensureReportOptions();
+  sheets.forEach(s => { opts.includeSheets[s] = checked; });
+  saveReportOptions();
+  renderReportOptions();
+}
+function onRoBulkSheets(checked) {
+  const opts = ensureReportOptions();
+  Object.keys(opts.includeSheets).forEach(s => { opts.includeSheets[s] = checked; });
+  saveReportOptions();
+  renderReportOptions();
+}
+function onReportOptionsReset() {
+  if (!confirm('보고서 옵션을 모두 기본값으로 되돌립니다. 진행할까요?')) return;
+  resetReportOptions();
+  renderReportOptions();
+  toast('옵션 초기화', '기본값으로 되돌렸습니다', 'info');
+}
+function onReportOptionsApply(action) {
+  closeReportOptions();
+  if (action === 'xlsx') exportCounselReport();
+  else if (action === 'pptx') exportCounselPpt();
+  else if (action === 'preview') openReportPreview('xlsx');
+}
+
+/* ============================================================
    REPORT PREVIEW — view Excel/PPT contents before downloading
    ============================================================ */
 let _rpState = { mode: 'xlsx', result: null, currentSheet: null, charts: [] };
@@ -8805,6 +9236,8 @@ function closeReportPreview() {
 
 function setReportPreviewMode(mode) {
   _rpState.mode = mode;
+  // Reset sheet selection when switching modes (avoids stale currentSheet from prior view)
+  _rpState.currentSheet = null;
   document.querySelectorAll('.rp-mode-btn').forEach(b => {
     const isActive = b.dataset.mode === mode;
     b.classList.toggle('is-active', isActive);
@@ -9348,7 +9781,11 @@ async function exportCounselPpt() {
     return;
   }
 
-  const result = CounselReport.buildAll(state.parsedData);
+  const opts = ensureReportOptions();
+  const sourceData = opts.applyFilters ? getFilteredData() : state.parsedData;
+  const result = CounselReport.buildAll(sourceData, {
+    includeSheets: opts.includeSheets, topN: opts.topN, primaryCohort: opts.primaryCohort,
+  });
   if (!result) { toast('생성 실패', '분석할 데이터가 없습니다', 'danger'); return; }
 
   LoadingOverlay.show('PPT 보고서 생성 중', '슬라이드를 작성하고 있습니다...');
@@ -9362,8 +9799,10 @@ async function exportCounselPpt() {
 
     const periodLabel = `${result.period.year}년 ${result.period.session || ''}`;
     const SUBJECTS = ['국어','수학','영어','사탐','과탐','한국사'];
+    const pptOpts = opts.ppt || { includeCover: true, includeSubjects: true, includeRosters: true, rosterTopN: 28 };
 
     // ----- Slide 1: 표지 -----
+    if (pptOpts.includeCover) {
     const titleSlide = pptx.addSlide();
     titleSlide.background = { color: 'F4F6FA' };
     titleSlide.addText('성적 분석 보고서', {
@@ -9383,13 +9822,13 @@ async function exportCounselPpt() {
       x: 0.5, y: 6.3, w: 12.3, h: 0.4,
       fontSize: 12, color: '94A3B8', fontFace: 'Malgun Gothic', align: 'center',
     });
+    }  // end includeCover
 
     LoadingOverlay.update('과목별 기수 비교 슬라이드 작성 중...', 15);
 
     // ----- Slides per subject: 기수별 비교 (cohort comparison) -----
-    // 각 과목당 1슬라이드 — stacked bar chart + 하단 데이터 테이블
     const cohortSheet = result.sheets['기수별 비교'];
-    if (cohortSheet) {
+    if (cohortSheet && pptOpts.includeSubjects) {
       // Parse cohort sheet data into per-subject blocks
       const blocks = {};
       let curSubj = null;
@@ -9486,7 +9925,9 @@ async function exportCounselPpt() {
     LoadingOverlay.update('1등급 명단 슬라이드 작성 중...', 70);
 
     // ----- Slides for 1등급 명단 (국어/수학/영어) -----
+    if (pptOpts.includeRosters) {
     const ROSTER_SHEETS = ['국어 1등급 명단', '수학 1등급 명단', '영어 1등급 명단'];
+    const rosterTopN = pptOpts.rosterTopN || 28;
     for (const sheetName of ROSTER_SHEETS) {
       const aoa = result.sheets[sheetName];
       if (!aoa || aoa.length < 3) continue;
@@ -9496,8 +9937,7 @@ async function exportCounselPpt() {
         x: 0.4, y: 0.3, w: 12.5, h: 0.6,
         fontSize: 22, bold: true, color: '1E40AF', fontFace: 'Malgun Gothic',
       });
-      // Build table from first 28 students (max for one slide)
-      const dataRows = aoa.slice(2).filter(r => r[0] !== '' && r[0] != null).slice(0, 28);
+      const dataRows = aoa.slice(2).filter(r => r[0] !== '' && r[0] != null).slice(0, rosterTopN);
       const header = ['연번', '반', '번호', '이름', '점수'];
       const tbl = [header.map(t => ({ text: t, options: { bold: true, fill: 'E0E7FF', fontFace: 'Malgun Gothic', fontSize: 11, align: 'center' }}))];
       dataRows.forEach(r => {
@@ -9533,11 +9973,12 @@ async function exportCounselPpt() {
         fontSize: 9, color: '94A3B8', fontFace: 'Malgun Gothic', align: 'right',
       });
     }
+    }  // end includeRosters
 
     LoadingOverlay.update('파일 작성 중...', 92);
 
     // ----- Save -----
-    const fname = `입학홍보팀_PPT_${result.period.year}_${result.period.session || ''}_${new Date().toISOString().slice(0,10)}.pptx`;
+    const fname = buildReportFilename('pptx');
     await pptx.writeFile({ fileName: fname });
     LoadingOverlay.hide();
     toast('PPT 보고서 생성', `${1 + SUBJECTS.length + ROSTER_SHEETS.length}개 슬라이드 다운로드`, 'success');
@@ -9556,10 +9997,16 @@ async function exportCounselReport() {
   }
   const menu = document.getElementById('exportMenu'); if (menu) menu.classList.remove('show');
 
-  // Build sheets with per-sheet error tolerance
+  // Build sheets with per-sheet error tolerance — respects user options
+  const opts = ensureReportOptions();
+  const sourceData = opts.applyFilters ? getFilteredData() : state.parsedData;
   let result;
   try {
-    result = CounselReport.buildAll(state.parsedData);
+    result = CounselReport.buildAll(sourceData, {
+      includeSheets: opts.includeSheets,
+      topN: opts.topN,
+      primaryCohort: opts.primaryCohort,
+    });
   } catch (e) {
     console.error('[buildAll]', e);
     toast('보고서 생성 실패', `${e.message}`, 'danger');
@@ -9705,7 +10152,7 @@ async function exportCounselReport() {
     const buf = await wb.xlsx.writeBuffer();
     LoadingOverlay.update('다운로드 시작', 100);
 
-    const fname = `입학홍보팀_분석_${result.period.year}_${result.period.session || ''}_${new Date().toISOString().slice(0,10)}.xlsx`;
+    const fname = buildReportFilename('xlsx');
     const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -10155,6 +10602,7 @@ function renderStudentSearch(q) {
         className: r.className,
         studentNo: r.studentNo,
         grade: r.grade,
+        cohort: r.cohort,
         subjects: new Map(),
         track: r.track,
       });
@@ -10201,6 +10649,7 @@ function renderStudentSearch(q) {
         <div class="stu-search-main">
           <div class="stu-search-name">
             <strong>${escapeHtml(s.studentName || '?')}</strong>
+            ${s.cohort ? `<span class="stu-search-meta" style="background:var(--bg-hover);padding:1px 6px;border-radius:3px">${escapeHtml(s.cohort)}</span>` : ''}
             <span class="stu-search-meta">${s.grade || '?'}학년 ${s.className || '?'}반 ${s.studentNo || '?'}번</span>
             ${s.track ? `<span class="stu-search-track stu-track-${s.track}">${s.track}</span>` : ''}
           </div>
@@ -10216,11 +10665,18 @@ function renderStudentSearch(q) {
 }
 
 function goToStudent(studentId) {
+  // Validate the student exists in current parsed data (could be stale ID from old session)
+  if (!state.parsedData || !state.parsedData.some(r => r.studentId === studentId)) {
+    toast('학생 없음', '해당 학생 데이터가 현재 분석 결과에 없습니다 (필터 또는 다른 분석 결과일 수 있음)', 'warning');
+    return;
+  }
   closeStudentSearch();
+  closeCommandPalette();
   state.studentSelection = studentId;
   switchTab('g-student');
   setTimeout(() => {
-    const sel = document.getElementById('studentSelect');
+    // Both possible dropdown IDs (studentSelect / studentPicker)
+    const sel = document.getElementById('studentSelect') || document.getElementById('studentPicker');
     if (sel) { sel.value = studentId; sel.dispatchEvent(new Event('change')); }
   }, 100);
 }
@@ -10503,6 +10959,7 @@ const commandPaletteCommands = () => {
   const hasData = state.parsedData && state.parsedData.length > 0;
   const base = [
     // === 보고서 ===
+    { id: 'options-report', section: '보고서', icon: 'tab',    title: '보고서 옵션 설정',  sub: '시트 선택 / Top N / 기수 / 필터 / 파일명', hint: '⌘,', action: openReportOptions, requireData: true },
     { id: 'preview-report', section: '보고서', icon: 'search', title: '보고서 미리보기',     sub: '다운로드 전 Excel/PPT 내용 확인', hint: '⌘B', action: () => openReportPreview('xlsx'), requireData: true },
     { id: 'export-counsel', section: '보고서', icon: 'report', title: 'Excel 보고서 다운로드', sub: '16시트 + 53차트, 입학 홍보팀 양식', hint: '⌘E', action: exportCounselReport, requireData: true },
     { id: 'export-ppt',     section: '보고서', icon: 'ppt',    title: 'PPT 보고서 다운로드',   sub: '표지 + 과목별 비교 + 1등급 명단', hint: '⌘P', action: exportCounselPpt, requireData: true },
@@ -10752,6 +11209,14 @@ document.addEventListener('keydown', (e) => {
     }
     return;
   }
+  // Ctrl/Cmd + , → 보고서 옵션 설정
+  if ((e.ctrlKey || e.metaKey) && e.key === ',' && !isTyping) {
+    if (state.parsedData && state.parsedData.length > 0) {
+      e.preventDefault();
+      openReportOptions();
+    }
+    return;
+  }
   // Ctrl/Cmd + / → 학생 검색
   if ((e.ctrlKey || e.metaKey) && e.key === '/' && !isTyping) {
     e.preventDefault();
@@ -10770,10 +11235,23 @@ document.addEventListener('keydown', (e) => {
     openHelpModal();
     return;
   }
-  // Esc → close any modal
-  if (e.key === 'Escape' && inModal) {
-    inModal.classList.remove('show');
-    return;
+  // Esc → close only the topmost modal (handles stacked modals correctly)
+  if (e.key === 'Escape') {
+    const openModals = [...document.querySelectorAll('.modal-overlay.show')];
+    if (openModals.length > 0) {
+      // Topmost = last in DOM order (later overlays render above earlier ones at same z-index)
+      const top = openModals[openModals.length - 1];
+      // Run dedicated close handlers for state cleanup (charts, recent commands, etc.)
+      if (top.id === 'cmdPaletteModal') closeCommandPalette();
+      else if (top.id === 'studentSearchModal') closeStudentSearch();
+      else if (top.id === 'reportPreviewModal') closeReportPreview();
+      else if (top.id === 'reportOptionsModal') closeReportOptions();
+      else if (top.id === 'univSimulatorModal') closeUnivSimulator();
+      else if (top.id === 'helpModal') closeHelpModal();
+      else if (top.id === 'projectsModal') closeProjectsModal();
+      else top.classList.remove('show');
+      return;
+    }
   }
   // Enter on student search input → click first result
   if (e.key === 'Enter' && e.target && e.target.id === 'studentSearchInput') {
