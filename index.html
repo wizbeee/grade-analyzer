@@ -2847,6 +2847,293 @@ svg { display: block; }
 .mt-4 { margin-top: var(--space-4); }
 .mt-6 { margin-top: var(--space-6); }
 .mb-4 { margin-bottom: var(--space-4); }
+
+/* ============================================================
+   DRILLDOWN + CROSS-ANALYSIS + CUSTOM GROUPS
+   ============================================================ */
+.drilldown-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.drilldown-table th {
+  position: sticky; top: 0;
+  background: var(--bg-hover); padding: 8px 12px; text-align: left;
+  font-weight: 600; font-size: 11px; color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+  text-transform: uppercase; letter-spacing: 0.04em;
+}
+.drilldown-table td {
+  padding: 7px 12px; border-bottom: 1px solid var(--border);
+  font-variant-numeric: tabular-nums;
+}
+.drilldown-table tr:last-child td { border-bottom: none; }
+.drilldown-table tr:hover td { background: var(--bg-hover); }
+.drilldown-empty {
+  padding: 40px 20px; text-align: center; color: var(--text-muted); font-size: 13px;
+}
+.chart-clickable canvas { cursor: pointer; }
+
+/* Cross Analysis (Tab 8) */
+.cross-controls {
+  display: flex; flex-wrap: wrap; gap: 10px; padding: 14px 16px;
+  background: var(--bg-elevated); border: 1px solid var(--border);
+  border-radius: var(--radius); margin-bottom: 16px;
+}
+.cross-controls .ctrl-group {
+  display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--text-muted);
+}
+.cross-controls .ctrl-group label { font-weight: 500; }
+.cross-controls select {
+  padding: 5px 10px; border: 1px solid var(--border); border-radius: 6px;
+  font-size: 12.5px; background: var(--bg-elevated); cursor: pointer;
+  font-family: inherit; color: var(--text);
+}
+.cross-controls select:focus { outline: none; border-color: var(--primary); }
+.cross-table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); }
+.cross-table { border-collapse: separate; border-spacing: 0; font-size: 12.5px; width: 100%; }
+.cross-table th, .cross-table td {
+  padding: 0; min-width: 64px;
+  border-right: 1px solid var(--border); border-bottom: 1px solid var(--border);
+  font-variant-numeric: tabular-nums;
+}
+.cross-table th { background: var(--bg-hover); padding: 8px 10px; font-weight: 600; font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.cross-table th.row-head, .cross-table td.row-head { background: var(--bg-hover); padding: 8px 12px; font-weight: 600; text-align: left; text-transform: none; font-size: 12px; color: var(--text); letter-spacing: 0; }
+.cross-table .heatmap-cell {
+  display: block; padding: 8px 6px; text-align: center;
+  font-size: 12px; font-weight: 600; color: white;
+  cursor: pointer; transition: opacity 0.12s, transform 0.06s;
+}
+.cross-table .heatmap-cell:hover { opacity: 0.85; }
+.cross-table .heatmap-cell:active { transform: scale(0.97); }
+.cross-table .heatmap-cell.empty { background: var(--bg-hover); color: var(--text-subtle); cursor: default; }
+.cross-table .heatmap-cell .cell-n { display: block; font-size: 9.5px; font-weight: 400; opacity: 0.78; margin-top: 1px; }
+
+/* Custom groups */
+.group-card {
+  display: flex; align-items: center; gap: 10px; padding: 10px 14px;
+  border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--bg-elevated); margin-bottom: 8px;
+}
+.group-color-dot {
+  width: 12px; height: 12px; border-radius: 4px; flex-shrink: 0;
+}
+.group-card .group-name {
+  font-weight: 600; font-size: 13px; flex: 1;
+}
+.group-card .group-meta { color: var(--text-muted); font-size: 11.5px; }
+.group-card .group-actions { display: flex; gap: 4px; }
+.group-card button {
+  padding: 4px 10px; border: 1px solid var(--border); background: var(--bg-elevated);
+  border-radius: 5px; font-size: 11px; cursor: pointer; color: var(--text-muted);
+  font-family: inherit;
+}
+.group-card button:hover { background: var(--bg-hover); color: var(--text); }
+.group-card button.danger { color: var(--danger-600); }
+.group-card button.danger:hover { background: var(--danger-50); }
+.group-color-picker {
+  display: flex; gap: 4px; flex-wrap: wrap;
+}
+.group-color-swatch {
+  width: 22px; height: 22px; border-radius: 5px; cursor: pointer;
+  border: 2px solid transparent; box-sizing: border-box;
+}
+.group-color-swatch.selected { border-color: var(--text); }
+
+/* Group filter chip in sidebar */
+.sidebar-group-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 3px 8px; border-radius: 5px; font-size: 11.5px;
+  background: var(--bg-elevated); border: 1px solid var(--border);
+  cursor: pointer; user-select: none; margin: 2px 2px 0 0;
+  font-weight: 500; color: var(--text-muted);
+}
+.sidebar-group-chip.active { background: var(--text); color: var(--bg-elevated); border-color: var(--text); }
+.sidebar-group-chip .group-color-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+/* ============================================================
+   CHART STUDIO
+   ============================================================ */
+.cs-section { margin-bottom: 14px; }
+.cs-section-label {
+  font-size: 10.5px; font-weight: 600; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px;
+}
+.cs-row {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 6px;
+  font-size: 12px;
+}
+.cs-row label { flex: 0 0 60px; color: var(--text-muted); font-weight: 500; }
+.cs-row select, .cs-row input[type="text"], .cs-row input[type="number"] {
+  flex: 1; padding: 5px 8px; border: 1px solid var(--border);
+  border-radius: 5px; font-size: 12px; background: var(--bg-elevated);
+  color: var(--text); font-family: inherit;
+}
+.cs-row select:focus, .cs-row input:focus { outline: none; border-color: var(--primary); }
+
+/* Chart type grid */
+.cs-type-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px;
+  margin-bottom: 4px;
+}
+.cs-type-btn {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  padding: 7px 4px; border: 1px solid var(--border); border-radius: 6px;
+  background: var(--bg-elevated); cursor: pointer; font-size: 10px;
+  color: var(--text-muted); font-family: inherit; font-weight: 500;
+  transition: border-color 0.1s, background 0.1s;
+  text-align: center;
+}
+.cs-type-btn svg { width: 22px; height: 22px; opacity: 0.7; }
+.cs-type-btn:hover { background: var(--bg-elevated); border-color: var(--border-strong); color: var(--text); }
+.cs-type-btn.active {
+  background: var(--text); color: var(--bg-elevated); border-color: var(--text);
+}
+.cs-type-btn.active svg { opacity: 1; }
+
+.cs-help {
+  font-size: 11px; color: var(--text-subtle); line-height: 1.5;
+  padding: 8px 10px; background: var(--bg-elevated); border: 1px dashed var(--border);
+  border-radius: 6px; margin-top: 6px;
+}
+
+/* Chart Library cards */
+.chart-library-card {
+  display: flex; gap: 14px; padding: 12px 14px;
+  border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--bg-elevated); margin-bottom: 8px;
+}
+.chart-library-thumb {
+  width: 120px; height: 80px; border-radius: 6px; overflow: hidden;
+  background: var(--bg-hover); display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; border: 1px solid var(--border);
+}
+.chart-library-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.chart-library-thumb .chart-library-thumb-fallback {
+  font-size: 24px; opacity: 0.4;
+}
+.chart-library-info { flex: 1; min-width: 0; }
+.chart-library-info .name { font-weight: 600; font-size: 13px; margin-bottom: 2px; }
+.chart-library-info .desc { color: var(--text-muted); font-size: 11.5px; line-height: 1.5; margin-bottom: 4px; }
+.chart-library-info .meta {
+  display: flex; gap: 10px; font-size: 11px; color: var(--text-subtle);
+  font-variant-numeric: tabular-nums;
+}
+.chart-library-actions { display: flex; flex-direction: column; gap: 4px; }
+.chart-library-actions button {
+  padding: 5px 12px; border: 1px solid var(--border); background: var(--bg-elevated);
+  border-radius: 5px; font-size: 11px; cursor: pointer; color: var(--text-muted);
+  font-family: inherit;
+}
+.chart-library-actions button:hover { background: var(--bg-hover); color: var(--text); }
+.chart-library-actions button.danger { color: var(--danger-600); }
+.chart-library-actions button.danger:hover { background: var(--danger-50); }
+.chart-library-actions label {
+  display: flex; align-items: center; gap: 4px; font-size: 11px;
+  color: var(--text-muted); cursor: pointer; padding: 4px 8px;
+  border: 1px solid var(--border); border-radius: 5px; background: var(--bg-elevated);
+}
+.chart-library-actions label.report-on { background: var(--success-50); border-color: var(--success-500); color: var(--success-700); }
+
+/* ============================================================
+   SMART MAPPING + DATA QUALITY
+   ============================================================ */
+.mapping-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 12.5px; }
+.mapping-table th {
+  position: sticky; top: 0; z-index: 1;
+  background: var(--bg-hover); padding: 9px 12px; text-align: left;
+  font-weight: 600; font-size: 11px; color: var(--text-muted);
+  border-bottom: 1px solid var(--border); text-transform: uppercase; letter-spacing: 0.04em;
+}
+.mapping-table td {
+  padding: 8px 12px; border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.mapping-table tr:hover td { background: var(--bg-hover); }
+.mapping-table tr.low-conf td { background: rgba(245, 158, 11, 0.07); }
+.mapping-table tr.low-conf:hover td { background: rgba(245, 158, 11, 0.12); }
+.mapping-header-cell {
+  font-weight: 600; color: var(--text); font-family: var(--font-mono);
+  font-size: 12px; max-width: 240px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.mapping-sample {
+  color: var(--text-muted); font-size: 11.5px; max-width: 240px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.mapping-role-select {
+  padding: 4px 8px; border: 1px solid var(--border); border-radius: 5px;
+  font-size: 12px; background: var(--bg-elevated); color: var(--text);
+  font-family: inherit; min-width: 130px; cursor: pointer;
+}
+.mapping-role-select:focus { outline: none; border-color: var(--primary); }
+.mapping-conf {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 11px; font-variant-numeric: tabular-nums;
+}
+.mapping-conf-bar {
+  display: inline-block; height: 6px; width: 50px;
+  background: var(--border); border-radius: 3px; overflow: hidden;
+}
+.mapping-conf-fill { display: block; height: 100%; border-radius: 3px; }
+.mapping-conf-high { background: var(--success-500); }
+.mapping-conf-mid  { background: var(--warning-500); }
+.mapping-conf-low  { background: var(--danger-500); }
+.mapping-stats {
+  font-size: 11px; color: var(--text-subtle); font-variant-numeric: tabular-nums;
+  display: flex; gap: 8px;
+}
+.mapping-stats span { display: inline-flex; align-items: center; gap: 3px; }
+.mapping-issue {
+  display: inline-block; font-size: 10.5px; padding: 1px 7px; border-radius: 10px;
+  background: var(--warning-50); color: var(--warning-600); margin-left: 6px;
+  font-weight: 500;
+}
+
+/* Data Quality dashboard cards */
+.dq-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px; margin-bottom: 18px;
+}
+.dq-card {
+  border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 14px 16px; background: var(--bg-elevated);
+}
+.dq-card .dq-label {
+  font-size: 11px; color: var(--text-muted); text-transform: uppercase;
+  font-weight: 500; letter-spacing: 0.04em;
+}
+.dq-card .dq-value {
+  font-size: 22px; font-weight: 600; margin-top: 4px;
+  letter-spacing: -0.02em; font-variant-numeric: tabular-nums;
+}
+.dq-card .dq-detail { font-size: 11.5px; color: var(--text-muted); margin-top: 2px; }
+.dq-card.alert { border-color: var(--warning-500); background: var(--warning-50); }
+.dq-card.alert .dq-value { color: var(--warning-600); }
+.dq-card.danger { border-color: var(--danger-500); background: var(--danger-50); }
+.dq-card.danger .dq-value { color: var(--danger-600); }
+.dq-issue-list {
+  font-size: 12.5px; color: var(--text); line-height: 1.7;
+  border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 14px;
+  margin-bottom: 10px; background: var(--bg-elevated);
+}
+.dq-issue-list h4 { margin-bottom: 6px; font-size: 13px; font-weight: 600; }
+.dq-issue-row {
+  display: flex; gap: 8px; padding: 4px 0; border-bottom: 1px solid var(--border);
+}
+.dq-issue-row:last-child { border-bottom: none; }
+.dq-issue-icon { color: var(--warning-500); }
+.dq-issue-row.danger .dq-issue-icon { color: var(--danger-500); }
+.dq-issue-row.success .dq-issue-icon { color: var(--success-500); }
+
+/* Stats rigor display */
+.stat-rigor {
+  display: inline-flex; gap: 6px; align-items: center;
+  font-size: 11.5px; color: var(--text-muted);
+  font-variant-numeric: tabular-nums; margin-top: 4px;
+}
+.stat-rigor .rigor-pill {
+  padding: 1px 6px; border-radius: 8px; font-size: 10.5px; font-weight: 600;
+}
+.stat-rigor .rigor-pill.sig { background: var(--success-50); color: var(--success-700); }
+.stat-rigor .rigor-pill.ns  { background: var(--bg-hover); color: var(--text-subtle); }
 </style>
 </head>
 <body>
@@ -3117,13 +3404,20 @@ svg { display: block; }
         <div class="shortcut-row"><span>테마 전환</span><kbd>Ctrl + D</kbd></div>
         <div class="shortcut-row"><span>다음 탭</span><kbd>Ctrl + →</kbd> 또는 <kbd>→</kbd></div>
         <div class="shortcut-row"><span>이전 탭</span><kbd>Ctrl + ←</kbd> 또는 <kbd>←</kbd></div>
-        <div class="shortcut-row"><span>탭 1~7 이동</span><kbd>1 ~ 7</kbd></div>
+        <div class="shortcut-row"><span>탭 1~8 이동</span><kbd>1 ~ 8</kbd></div>
         <div class="shortcut-row"><span>닫기 / 취소</span><kbd>Esc</kbd></div>
       </div>
+      <h3 style="font-size:var(--text-base);margin:24px 0 12px">분석 자유도 (NEW)</h3>
+      <ul style="font-size:var(--text-sm);color:var(--text-muted);margin:0 0 8px;padding-left:20px;line-height:1.7">
+        <li><strong>드릴다운</strong> — 거의 모든 차트의 막대/점을 <em>클릭</em>하면 해당 그룹의 학생/과목 명단 모달이 열립니다. 모달 우측 상단 <strong>CSV</strong> 버튼으로 전체 내보내기.</li>
+        <li><strong>교차 탐색 (탭 7)</strong> — 행/열/측정값을 자유롭게 조합한 히트맵. 셀 클릭 → 해당 그룹 드릴다운.</li>
+        <li><strong>내 그룹</strong> — 사이드바 <em>그룹 관리</em>에서 학생을 묶어 저장. 그룹 칩 클릭 시 분석 전체가 그 그룹으로 좁혀집니다 (필터처럼 동작).</li>
+      </ul>
       <h3 style="font-size:var(--text-base);margin:24px 0 12px">자동 저장</h3>
       <p style="font-size:var(--text-sm);color:var(--text-muted);margin:0 0 8px">
         업로드한 데이터는 LocalStorage에 자동 저장되어 새로고침이나 브라우저 재시작 후에도 복원됩니다.
         첫 화면의 <strong>이전 작업 이어하기</strong> 카드를 클릭하면 즉시 복원됩니다.
+        <em>내 그룹</em>은 분석 데이터와 분리되어 별도로 저장되므로 새 데이터를 올려도 유지됩니다.
       </p>
       <h3 style="font-size:var(--text-base);margin:24px 0 12px">데이터 형식</h3>
       <p style="font-size:var(--text-sm);color:var(--text-muted);margin:0 0 8px">
@@ -3159,6 +3453,101 @@ svg { display: block; }
       <span class="cmd-footer-item"><kbd>esc</kbd> 닫기</span>
       <span class="cmd-footer-spacer"></span>
       <span class="cmd-footer-tip">한글 초성 OK · ㅂㄱㅅ → 보고서</span>
+    </div>
+  </div>
+</div>
+
+<!-- Drilldown Modal — click on charts/cells to inspect underlying records -->
+<div class="modal-overlay" id="drilldownModal" onclick="if(event.target===this)closeDrilldown()">
+  <div class="modal" style="max-width: 1000px; width: 100%;">
+    <div style="padding: 14px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px;">
+      <strong id="drilldownTitle" style="font-size: 14px;">상세 데이터</strong>
+      <span id="drilldownMeta" style="color: var(--text-muted); font-size: 12px; margin-right:auto;"></span>
+      <button class="btn btn-ghost btn-sm" onclick="exportDrilldownCsv()" title="CSV로 내보내기">CSV</button>
+      <button class="btn btn-ghost btn-sm" onclick="closeDrilldown()" title="ESC로도 닫기">닫기</button>
+    </div>
+    <div id="drilldownBody" style="max-height: 70vh; overflow: auto; padding: 0;"></div>
+  </div>
+</div>
+
+<!-- Smart Mapping Modal — confirm/edit auto-inferred column roles -->
+<div class="modal-overlay" id="smartMappingModal" onclick="if(event.target===this)closeSmartMapping()">
+  <div class="modal" style="max-width: 1100px; width: 100%; max-height: 90vh;">
+    <div style="padding: 14px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px;">
+      <strong style="font-size: 14px;">🧠 데이터 구조 자동 분석</strong>
+      <span id="smartMappingMeta" style="color: var(--text-muted); font-size: 12px; margin-right: auto;"></span>
+      <button class="btn btn-ghost btn-sm" onclick="onMappingResetToAuto()" title="자동 추론 결과로 되돌리기">자동 추론</button>
+      <button class="btn btn-ghost btn-sm" onclick="onMappingSaveAsTemplate()" title="이 매핑을 양식으로 저장 (다음 업로드 시 자동 적용)">💾 양식 저장</button>
+      <button class="btn btn-ghost btn-sm" onclick="closeSmartMapping()">닫기</button>
+    </div>
+    <div id="smartMappingBody" style="max-height: calc(90vh - 130px); overflow-y: auto; padding: 16px 18px;"></div>
+    <div style="padding: 12px 18px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; gap: 8px; background: var(--bg-hover);">
+      <div id="smartMappingDqSummary" style="font-size:11.5px; color: var(--text-muted)"></div>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-secondary btn-sm" onclick="closeSmartMapping()">취소</button>
+        <button class="btn btn-primary btn-sm" onclick="onMappingApply()">이 매핑으로 분석 시작</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Data Quality Modal — outlier/missing/inconsistency report -->
+<div class="modal-overlay" id="dataQualityModal" onclick="if(event.target===this)closeDataQuality()">
+  <div class="modal" style="max-width: 900px; width: 100%;">
+    <div style="padding: 14px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px;">
+      <strong style="font-size: 14px;">🩺 데이터 품질 보고서</strong>
+      <span style="color: var(--text-muted); font-size: 12px; margin-right: auto;">결측치 · 이상치 · 일관성 위반 점검</span>
+      <button class="btn btn-ghost btn-sm" onclick="closeDataQuality()">닫기</button>
+    </div>
+    <div id="dataQualityBody" style="max-height: 75vh; overflow-y: auto; padding: 16px 18px;"></div>
+  </div>
+</div>
+
+<!-- Chart Studio Modal — build any of 16+ chart types from filtered data -->
+<div class="modal-overlay" id="chartStudioModal" onclick="if(event.target===this)closeChartStudio()">
+  <div class="modal" style="max-width: 1200px; width: 100%; max-height: 92vh;">
+    <div style="padding: 14px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px;">
+      <strong style="font-size: 14px;">📈 차트 스튜디오</strong>
+      <span style="color: var(--text-muted); font-size: 12px; margin-right: auto;">엑셀 수준 16종 차트를 자유롭게 구성</span>
+      <button class="btn btn-ghost btn-sm" onclick="resetChartStudio()" title="초기 설정으로 되돌리기">초기화</button>
+      <button class="btn btn-secondary btn-sm" onclick="exportChartStudioPng()" title="현재 차트를 PNG로 저장">PNG 저장</button>
+      <button class="btn btn-primary btn-sm" onclick="saveCurrentChart()" title="이름 지정 후 '내 차트'에 저장 (보고서에 포함 가능)">💾 내 차트로 저장</button>
+      <button class="btn btn-ghost btn-sm" onclick="closeChartStudio()" title="ESC">닫기</button>
+    </div>
+    <div id="chartStudioBody" style="display:grid; grid-template-columns: 320px 1fr; gap:0; max-height: calc(92vh - 60px); overflow:hidden">
+      <!-- Left panel: configuration (rendered by renderChartStudio) -->
+      <div id="chartStudioConfig" style="overflow-y:auto; padding:16px; border-right:1px solid var(--border); background:var(--bg-hover);"></div>
+      <!-- Right panel: live preview -->
+      <div id="chartStudioPreview" style="overflow:auto; padding:16px; min-height:480px;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Custom Charts Library Modal — manage saved charts (rename/delete/reorder/include in report) -->
+<div class="modal-overlay" id="chartLibraryModal" onclick="if(event.target===this)closeChartLibrary()">
+  <div class="modal" style="max-width: 900px; width: 100%;">
+    <div style="padding: 14px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px;">
+      <strong style="font-size: 14px;">📊 내 차트 라이브러리</strong>
+      <span style="color: var(--text-muted); font-size: 12px; margin-left: auto;">저장한 차트는 보고서(Excel/PPT)에 포함할 수 있습니다</span>
+    </div>
+    <div id="chartLibraryBody" style="max-height: 75vh; overflow-y: auto; padding: 16px 18px;"></div>
+    <div style="padding: 12px 18px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; gap: 6px; background: var(--bg-hover);">
+      <button class="btn btn-secondary btn-sm" onclick="openChartStudio()">+ 새 차트 만들기</button>
+      <button class="btn btn-secondary btn-sm" onclick="closeChartLibrary()">닫기</button>
+    </div>
+  </div>
+</div>
+
+<!-- Custom Groups Manager Modal -->
+<div class="modal-overlay" id="groupManagerModal" onclick="if(event.target===this)closeGroupManager()">
+  <div class="modal" style="max-width: 900px; width: 100%;">
+    <div style="padding: 14px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px;">
+      <strong style="font-size: 14px;">내 그룹 관리</strong>
+      <span style="color: var(--text-muted); font-size: 12px; margin-left: auto;">학생을 묶어서 비교 대상으로 활용</span>
+    </div>
+    <div id="groupManagerBody" style="max-height: 75vh; overflow: auto; padding: 16px 18px;"></div>
+    <div style="padding: 12px 18px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 6px; background: var(--bg-hover);">
+      <button class="btn btn-secondary btn-sm" onclick="closeGroupManager()">닫기</button>
     </div>
   </div>
 </div>
@@ -3471,10 +3860,46 @@ let state = {
   currentTab: null,
   theme: localStorage.getItem('theme') || 'light',
   sidebarCollapsed: false,
-  filters: { years: [], sessions: [], grades: [], classes: [], subjects: [], genders: [], tracks: [] },
+  filters: { years: [], sessions: [], grades: [], classes: [], subjects: [], genders: [], tracks: [], customGroups: [] },
   whatIf: { subject: null, delta: 0 },
   reportOptions: null,  // loaded lazily from LocalStorage
+  customGroups: [],         // [{ id, name, color, studentIds:[], note, createdAt }]
+  cross: { row: 'subject', col: 'session', metric: 'avgRaw' },
+  drilldownState: null,     // { records, columns, title } — for CSV export
+  customCharts: [],         // [{ id, name, desc, type, config, thumb, includeInReport, createdAt }]
+  chartStudio: null,        // Live editor state — { name, type, x, y, group, agg, metric, scope, ... }
 };
+
+/* ============================================================
+   CUSTOM GROUPS — persisted in LocalStorage (separate key)
+   ============================================================ */
+const CUSTOM_GROUPS_KEY = 'grade-analyzer-custom-groups-v1';
+const GROUP_COLORS = ['#4E79A7', '#F28E2B', '#59A14F', '#E15759', '#76B7B2', '#B07AA1', '#EDC948', '#FF9DA7'];
+
+function loadCustomGroups() {
+  try {
+    const raw = localStorage.getItem(CUSTOM_GROUPS_KEY);
+    if (!raw) return [];
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr) ? arr : [];
+  } catch (e) { return []; }
+}
+function saveCustomGroups() {
+  try { localStorage.setItem(CUSTOM_GROUPS_KEY, JSON.stringify(state.customGroups || [])); }
+  catch (e) { console.error('saveCustomGroups failed:', e); }
+}
+function newGroupId() {
+  return 'g' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+}
+function findGroup(id) {
+  return (state.customGroups || []).find(g => g.id === id);
+}
+function getGroupRecordsByName(name) {
+  const g = (state.customGroups || []).find(x => x.name === name);
+  if (!g) return [];
+  const set = new Set(g.studentIds);
+  return (state.parsedData || []).filter(r => set.has(r.studentId));
+}
 
 /* ============================================================
    REPORT OPTIONS — user customization for Excel/PPT report
@@ -3972,6 +4397,18 @@ function getFilteredData() {
   // Filter chips store string values; record fields can be number/string.
   // Compare via String() coercion so '2026' matches both 2026 and "2026".
   const matches = (arr, val) => !arr?.length || arr.includes(val == null ? '' : String(val));
+
+  // Custom group filter: keep records whose studentId belongs to ANY selected group
+  const activeGroupIds = (f.customGroups || []);
+  let groupStudentSet = null;
+  if (activeGroupIds.length > 0) {
+    groupStudentSet = new Set();
+    activeGroupIds.forEach(gid => {
+      const g = (state.customGroups || []).find(x => x.id === gid);
+      if (g) g.studentIds.forEach(sid => groupStudentSet.add(sid));
+    });
+  }
+
   return d.filter(r => {
     if (!matches(f.years,    r.year))       return false;
     if (!matches(f.sessions, r.session))    return false;
@@ -3980,6 +4417,7 @@ function getFilteredData() {
     if (!matches(f.subjects, r.subjectGroup || r.subject)) return false;
     if (!matches(f.genders,  r.gender))     return false;
     if (!matches(f.tracks,   r.track))      return false;
+    if (groupStudentSet && !groupStudentSet.has(r.studentId)) return false;
     return true;
   });
 }
@@ -4057,8 +4495,27 @@ applyTheme();
 
 // On page load: render auto-restore card if there is saved data + initial sidebar
 window.addEventListener('DOMContentLoaded', () => {
+  try { state.customGroups = loadCustomGroups(); } catch (e) { console.warn('[load groups]', e); }
+  try { state.customCharts = loadCustomCharts(); } catch (e) { console.warn('[load charts]', e); }
   try { renderAutoRestoreCard(); } catch (e) { console.warn('[restore card]', e); }
   try { renderSidebar(); } catch (e) { console.warn('[sidebar]', e); }
+  // Close drilldown / group manager / chart studio / chart library on ESC
+  document.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Escape') {
+      const dd = document.getElementById('drilldownModal');
+      if (dd && dd.classList.contains('show')) { closeDrilldown(); ev.stopPropagation(); return; }
+      const gm = document.getElementById('groupManagerModal');
+      if (gm && gm.classList.contains('show')) { closeGroupManager(); ev.stopPropagation(); return; }
+      const cs = document.getElementById('chartStudioModal');
+      if (cs && cs.classList.contains('show')) { closeChartStudio(); ev.stopPropagation(); return; }
+      const cl = document.getElementById('chartLibraryModal');
+      if (cl && cl.classList.contains('show')) { closeChartLibrary(); ev.stopPropagation(); return; }
+      const sm = document.getElementById('smartMappingModal');
+      if (sm && sm.classList.contains('show')) { closeSmartMapping(); ev.stopPropagation(); return; }
+      const dq = document.getElementById('dataQualityModal');
+      if (dq && dq.classList.contains('show')) { closeDataQuality(); ev.stopPropagation(); return; }
+    }
+  });
 });
 
 /* ============================================================
@@ -4071,6 +4528,7 @@ const SIDEBAR_TABS = [
   { id: 'g-compare', label: '집단 비교', icon: 'M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75' },
   { id: 'g-correlation', label: '상관 분석', icon: 'M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71' },
   { id: 'g-trend', label: '년도별 추이', icon: 'M22 12h-4l-3 9L9 3l-3 9H2' },
+  { id: 'g-cross', label: '교차 탐색', icon: 'M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z' },
   { id: 'g-student', label: '학생 조회', icon: 'M21 21l-4.35-4.35M11 4a7 7 0 100 14 7 7 0 000-14z' },
 ];
 
@@ -4219,6 +4677,12 @@ function renderSidebarResults() {
         ${ICON_UNIV}<span class="sidebar-item-label">대학 시뮬레이터</span>
         <span class="sidebar-item-shortcut">⌘U</span>
       </button>
+      <button class="sidebar-item" onclick="openDataQuality()" title="결측치·이상치·일관성 위반 점검">
+        ${ICON_HELP}<span class="sidebar-item-label">데이터 품질 보고서</span>
+      </button>
+      <button class="sidebar-item" onclick="reopenSmartMapping()" title="현재 데이터의 컬럼 매핑 다시 확인">
+        ${ICON_OPTIONS}<span class="sidebar-item-label">컬럼 매핑 확인</span>
+      </button>
     </div>
 
     <div class="sidebar-section sidebar-data-summary">
@@ -4245,6 +4709,49 @@ function renderSidebarResults() {
         <button class="sidebar-link" onclick="clearFilters()">초기화</button>
       </div>
     </div>` : ''}
+
+    <div class="sidebar-section">
+      <div class="sidebar-section-label" style="display:flex;align-items:center;gap:6px">
+        <span>내 그룹</span>
+        <span style="margin-left:auto;font-weight:400;color:var(--text-subtle);font-size:10px">${(state.customGroups || []).length}</span>
+      </div>
+      ${(state.customGroups || []).length === 0
+        ? `<div style="font-size:11px;color:var(--text-subtle);padding:6px 10px;line-height:1.5">학생을 묶어 비교 대상으로<br>활용할 수 있습니다.</div>`
+        : `<div style="padding:0 4px">${(state.customGroups || []).map(g => `
+            <span class="sidebar-group-chip ${(state.filters.customGroups || []).includes(g.id) ? 'active' : ''}"
+              onclick="toggleGroupFilter('${g.id}')" title="${escapeHtml(g.name)} (${g.studentIds.length}명)">
+              <span class="group-color-dot" style="background:${g.color}"></span>${escapeHtml(g.name)}
+            </span>`).join('')}</div>`}
+      <button class="sidebar-item" onclick="openGroupManager()" title="그룹 만들기/편집/삭제" style="margin-top:6px">
+        ${ICON_PLUS}<span class="sidebar-item-label">그룹 관리</span>
+      </button>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-section-label" style="display:flex;align-items:center;gap:6px">
+        <span>내 차트</span>
+        <span style="margin-left:auto;font-weight:400;color:var(--text-subtle);font-size:10px">${(state.customCharts || []).length}</span>
+      </div>
+      ${(state.customCharts || []).length === 0
+        ? `<div style="font-size:11px;color:var(--text-subtle);padding:6px 10px;line-height:1.5">16종 차트로 자유롭게<br>분석하고 보고서에 추가하세요.</div>`
+        : `<div style="padding:0 4px;font-size:11px;color:var(--text-muted)">
+            ${(state.customCharts || []).slice(0, 6).map(c => `
+              <div style="padding:3px 6px;cursor:pointer;border-radius:4px;display:flex;align-items:center;gap:4px"
+                onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background=''"
+                onclick="onChartViewClick('${c.id}')" title="${escapeHtml(c.name)} — 클릭하여 편집">
+                <span style="opacity:${c.includeInReport ? 1 : 0.3}">📊</span>
+                <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(c.name)}</span>
+              </div>`).join('')}
+            ${(state.customCharts || []).length > 6 ? `<div style="font-size:10px;color:var(--text-subtle);padding:2px 6px">+ ${(state.customCharts || []).length - 6}개 더</div>` : ''}
+          </div>`}
+      <button class="sidebar-item" onclick="openChartStudio()" title="새 차트 만들기 — 16종 종류" style="margin-top:6px">
+        ${ICON_PLUS}<span class="sidebar-item-label">차트 만들기</span>
+      </button>
+      ${(state.customCharts || []).length > 0 ? `
+      <button class="sidebar-item" onclick="openChartLibrary()" title="저장된 차트 관리">
+        ${ICON_FILE}<span class="sidebar-item-label">차트 라이브러리</span>
+      </button>` : ''}
+    </div>
 
     <div class="sidebar-section">
       <div class="sidebar-section-label">관리</div>
@@ -4304,6 +4811,1201 @@ function toast(title, msg = '', type = '') {
     el.style.transform = 'translateX(100%)';
     setTimeout(() => el.remove(), 300);
   }, 3500);
+}
+
+/* ============================================================
+   DRILLDOWN — generic chart click → records modal
+   ============================================================ */
+const DRILLDOWN_FIELD_LABELS = {
+  studentId: '학번', studentName: '이름', className: '반', classNumber: '번호',
+  year: '학년도', session: '회차', grade: '학년', gender: '성별', track: '계열',
+  subject: '과목', subjectGroup: '과목군', rawScore: '원점수', standardScore: '표준점수',
+  percentile: '백분위', grade9: '등급', stanine: '스테나인',
+};
+const DRILLDOWN_DEFAULT_COLS = [
+  'studentId', 'studentName', 'className', 'year', 'session', 'subject',
+  'rawScore', 'standardScore', 'percentile', 'grade9'
+];
+
+function openDrilldown(title, records, columns) {
+  const modal = document.getElementById('drilldownModal');
+  if (!modal) return;
+  document.getElementById('drilldownTitle').textContent = title || '상세 데이터';
+  const meta = document.getElementById('drilldownMeta');
+  if (meta) meta.textContent = `${records.length.toLocaleString()}건`;
+
+  const body = document.getElementById('drilldownBody');
+  if (!records.length) {
+    body.innerHTML = '<div class="drilldown-empty">표시할 레코드가 없습니다.</div>';
+    state.drilldownState = { records: [], columns: [], title };
+    modal.classList.add('show');
+    return;
+  }
+
+  // Auto-pick columns: prefer provided list; otherwise use defaults intersected with present fields
+  const present = new Set(Object.keys(records[0] || {}));
+  const cols = (columns && columns.length ? columns : DRILLDOWN_DEFAULT_COLS).filter(c => present.has(c));
+
+  let html = '<table class="drilldown-table"><thead><tr>';
+  cols.forEach(c => { html += `<th>${escapeHtml(DRILLDOWN_FIELD_LABELS[c] || c)}</th>`; });
+  html += '</tr></thead><tbody>';
+  // Limit to first 500 rows for perf; export CSV gets all
+  const visible = records.slice(0, 500);
+  visible.forEach(r => {
+    html += '<tr>';
+    cols.forEach(c => {
+      let v = r[c];
+      if (v == null || v === '') v = '—';
+      else if (typeof v === 'number' && !Number.isInteger(v)) v = v.toFixed(1);
+      html += `<td>${escapeHtml(String(v))}</td>`;
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  if (records.length > visible.length) {
+    html += `<div class="drilldown-empty" style="padding:14px">처음 ${visible.length}건만 표시 중 — CSV 내보내기로 전체 ${records.length.toLocaleString()}건 확인 가능</div>`;
+  }
+  body.innerHTML = html;
+  state.drilldownState = { records, columns: cols, title };
+  modal.classList.add('show');
+}
+
+function closeDrilldown() {
+  const modal = document.getElementById('drilldownModal');
+  if (modal) modal.classList.remove('show');
+}
+
+function exportDrilldownCsv() {
+  const ds = state.drilldownState;
+  if (!ds || !ds.records.length) {
+    toast('내보낼 데이터 없음', '먼저 드릴다운 데이터를 표시하세요', 'warning');
+    return;
+  }
+  const cols = ds.columns;
+  const header = cols.map(c => DRILLDOWN_FIELD_LABELS[c] || c);
+  const rows = ds.records.map(r => cols.map(c => {
+    let v = r[c];
+    if (v == null) v = '';
+    return String(v).replace(/"/g, '""');
+  }));
+  const csv = [header, ...rows].map(row => row.map(c => `"${c}"`).join(',')).join('\n');
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  const safeTitle = (ds.title || 'drilldown').replace(/[^\w가-힣]+/g, '_').slice(0, 40);
+  a.download = `드릴다운_${safeTitle}_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+/* Best-effort: given a clicked label/datasetLabel, find which record fields match
+   and return the filtered record subset. Used by chart onClick handlers. */
+function drilldownByLabels(label, datasetLabel, basis) {
+  const records = (basis && basis.length) ? basis : getFilteredData();
+  if (!records.length) return [];
+  const candidates = ['subject', 'subjectGroup', 'year', 'session', 'className', 'grade', 'gender', 'track', 'grade9', 'stanine'];
+  // Strip suffixes like "회"/"등급" to improve match
+  const norm = (v) => {
+    const s = String(v == null ? '' : v).trim();
+    return s.replace(/(회차|회|등급|학년|학기|월)\s*$/, '').trim();
+  };
+  const findField = (val) => {
+    const target = norm(val);
+    if (!target) return null;
+    for (const f of candidates) {
+      if (records.some(r => norm(r[f]) === target)) return f;
+    }
+    return null;
+  };
+  const labelField = findField(label);
+  const dsField = findField(datasetLabel);
+  let subset = records;
+  if (labelField) subset = subset.filter(r => norm(r[labelField]) === norm(label));
+  if (dsField && dsField !== labelField) subset = subset.filter(r => norm(r[dsField]) === norm(datasetLabel));
+  return { subset, labelField, dsField };
+}
+
+/* Wires onClick into all Chart.js charts that don't already have one.
+   Plotly charts are wired separately via plotly_click in their own renderers. */
+function wireDrilldownToCharts() {
+  if (typeof charts !== 'object') return;
+  Object.entries(charts).forEach(([key, chart]) => {
+    if (!chart || !chart.options || typeof chart.update !== 'function') return; // Chart.js only
+    if (chart._drilldownWired) return;
+    const userOnClick = chart.options.onClick;
+    chart.options.onClick = function(ev, items, c) {
+      try { if (userOnClick) userOnClick.call(this, ev, items, c); } catch (e) {}
+      if (!items || !items.length) return;
+      const it = items[0];
+      const label = c.data.labels ? c.data.labels[it.index] : '';
+      const datasetLabel = c.data.datasets?.[it.datasetIndex]?.label || '';
+      const result = drilldownByLabels(label, datasetLabel);
+      if (!result || !result.subset.length) {
+        toast('드릴다운', '해당 항목의 매칭 레코드를 찾지 못했습니다', 'warning');
+        return;
+      }
+      const parts = [];
+      if (result.labelField) parts.push(`${DRILLDOWN_FIELD_LABELS[result.labelField] || result.labelField}=${label}`);
+      if (result.dsField && result.dsField !== result.labelField) parts.push(`${DRILLDOWN_FIELD_LABELS[result.dsField] || result.dsField}=${datasetLabel}`);
+      openDrilldown(parts.join(' / ') || `차트 클릭 (${key})`, result.subset);
+    };
+    try { chart.update('none'); } catch (e) {}
+    chart._drilldownWired = true;
+    // Add cursor pointer hint on canvas
+    if (chart.canvas) chart.canvas.style.cursor = 'pointer';
+  });
+}
+
+/* ============================================================
+   CROSS ANALYSIS (TAB 8)
+   ============================================================ */
+const CROSS_AXIS_OPTIONS = [
+  { key: 'subject',     label: '과목' },
+  { key: 'session',     label: '회차' },
+  { key: 'year',        label: '학년도' },
+  { key: 'className',   label: '반' },
+  { key: 'grade',       label: '학년' },
+  { key: 'gender',      label: '성별' },
+  { key: 'track',       label: '계열' },
+  { key: 'grade9',label: '등급' },
+  { key: 'gradeBucket', label: '등급대 (1-2/3-4/5-6/7-9)' },
+];
+const CROSS_METRIC_OPTIONS = [
+  { key: 'avgRaw',         label: '평균 원점수' },
+  { key: 'avgStandard',    label: '평균 표준점수' },
+  { key: 'avgPercentile',  label: '평균 백분위' },
+  { key: 'avgGrade',       label: '평균 등급' },
+  { key: 'count',          label: '데이터 수' },
+  { key: 'distinctStudents', label: '학생 수' },
+];
+
+function crossKey(r, axis) {
+  if (axis === 'subject') return r.subjectGroup || r.subject || '(미상)';
+  if (axis === 'gradeBucket') {
+    const g = Number(r.grade9);
+    if (!g) return '(미상)';
+    if (g <= 2) return '1-2등급';
+    if (g <= 4) return '3-4등급';
+    if (g <= 6) return '5-6등급';
+    return '7-9등급';
+  }
+  const v = r[axis];
+  return v == null || v === '' ? '(미상)' : String(v);
+}
+
+function crossAggregate(records, metric) {
+  if (!records.length) return null;
+  if (metric === 'count') return records.length;
+  if (metric === 'distinctStudents') return new Set(records.map(r => r.studentId)).size;
+  const fieldMap = {
+    avgRaw: 'rawScore', avgStandard: 'standardScore',
+    avgPercentile: 'percentile', avgGrade: 'grade9',
+  };
+  const f = fieldMap[metric];
+  if (!f) return null;
+  const vals = records.map(r => r[f]).filter(v => v != null && !isNaN(Number(v))).map(Number);
+  if (!vals.length) return null;
+  return vals.reduce((s, v) => s + v, 0) / vals.length;
+}
+
+function buildCrossMatrix(records) {
+  const cfg = state.cross;
+  if (cfg.row === cfg.col) {
+    return { rowKeys: [], colKeys: [], cells: {}, error: '행과 열을 다른 차원으로 설정하세요' };
+  }
+  const rowKeys = [...new Set(records.map(r => crossKey(r, cfg.row)))];
+  const colKeys = [...new Set(records.map(r => crossKey(r, cfg.col)))];
+  const sortKeys = arr => arr.sort((a, b) => {
+    const na = parseFloat(a), nb = parseFloat(b);
+    if (!isNaN(na) && !isNaN(nb)) return na - nb;
+    return String(a).localeCompare(String(b), 'ko');
+  });
+  sortKeys(rowKeys); sortKeys(colKeys);
+  const cells = {};
+  rowKeys.forEach(rk => {
+    cells[rk] = {};
+    colKeys.forEach(ck => {
+      const subset = records.filter(r => crossKey(r, cfg.row) === rk && crossKey(r, cfg.col) === ck);
+      cells[rk][ck] = { value: crossAggregate(subset, cfg.metric), records: subset };
+    });
+  });
+  return { rowKeys, colKeys, cells };
+}
+
+function colorForCrossCell(value, metric, min, max) {
+  if (value == null || max === min) return value == null ? '#E5E7EB' : '#6B7280';
+  const norm = (value - min) / (max - min);
+  // For 등급(낮을수록 좋음): invert. For others: higher is greener.
+  const t = (metric === 'avgGrade') ? 1 - norm : norm;
+  const r = Math.round(220 + (16 - 220) * t);
+  const g = Math.round(80 + (185 - 80) * t);
+  const b = Math.round(80 + (129 - 80) * t);
+  return `rgb(${r},${g},${b})`;
+}
+
+function updateCrossControl(field, value) {
+  state.cross[field] = value;
+  renderGroupCross();
+  setTimeout(() => renderGroupCrossCharts(), 0);
+}
+
+function renderGroupCross() {
+  const data = getFilteredData();
+  const wrap = document.getElementById('tab-g-cross');
+  if (!wrap) return; // tab not yet rendered
+  const cfg = state.cross;
+  const { rowKeys, colKeys, cells, error } = buildCrossMatrix(data);
+
+  const allValues = !error
+    ? rowKeys.flatMap(r => colKeys.map(c => cells[r][c].value)).filter(v => v != null)
+    : [];
+  const minV = allValues.length ? Math.min(...allValues) : 0;
+  const maxV = allValues.length ? Math.max(...allValues) : 0;
+
+  const fmt = v => {
+    if (v == null) return '—';
+    if (cfg.metric === 'count' || cfg.metric === 'distinctStudents') return Math.round(v).toLocaleString();
+    return v.toFixed(cfg.metric === 'avgGrade' ? 2 : 1);
+  };
+
+  let tableHtml = '';
+  if (error) {
+    tableHtml = `<div class="drilldown-empty">${escapeHtml(error)}</div>`;
+  } else if (rowKeys.length === 0) {
+    tableHtml = '<div class="drilldown-empty">현재 필터 조합으로 표시할 데이터가 없습니다.</div>';
+  } else {
+    tableHtml = '<div class="cross-table-wrap"><table class="cross-table"><thead><tr><th class="row-head"></th>';
+    colKeys.forEach(c => { tableHtml += `<th>${escapeHtml(c)}</th>`; });
+    tableHtml += '</tr></thead><tbody>';
+    rowKeys.forEach(rk => {
+      tableHtml += `<tr><td class="row-head">${escapeHtml(rk)}</td>`;
+      colKeys.forEach(ck => {
+        const cell = cells[rk][ck];
+        if (cell.value == null) {
+          tableHtml += `<td><span class="heatmap-cell empty">—</span></td>`;
+        } else {
+          const bg = colorForCrossCell(cell.value, cfg.metric, minV, maxV);
+          tableHtml += `<td><span class="heatmap-cell" style="background:${bg}"
+            onclick="onCrossCellClick('${escapeHtml(rk).replace(/'/g, "\\'")}','${escapeHtml(ck).replace(/'/g, "\\'")}')">
+            ${fmt(cell.value)}<span class="cell-n">n=${cell.records.length}</span>
+          </span></td>`;
+        }
+      });
+      tableHtml += '</tr>';
+    });
+    tableHtml += '</tbody></table></div>';
+  }
+
+  const wrapEl = document.getElementById('crossTabContent');
+  if (wrapEl) wrapEl.innerHTML = renderCrossControlsHtml() + tableHtml + `
+    <div class="card" style="margin-top:16px">
+      <div class="card-title">시각화 (행별 평균)</div>
+      <div class="chart-container" style="min-height:260px"><canvas id="crossChart"></canvas></div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <div style="font-size:12px;color:var(--text-muted);line-height:1.6">
+        💡 셀을 클릭하면 해당 그룹의 학생 명단(원본 레코드)이 모달로 열립니다.<br>
+        💡 색상: 진한 녹색일수록 점수/백분위가 높음. <strong>평균 등급</strong> 기준일 때만 진한 녹색이 "낮은 등급(좋음)" 입니다.
+      </div>
+    </div>`;
+}
+
+function renderCrossControlsHtml() {
+  const cfg = state.cross;
+  const opt = (list, current, onchange) => list.map(o =>
+    `<option value="${o.key}" ${o.key === current ? 'selected' : ''}>${o.label}</option>`).join('');
+  return `
+    <div class="cross-controls">
+      <div class="ctrl-group"><label>행 (Y)</label>
+        <select onchange="updateCrossControl('row', this.value)">${opt(CROSS_AXIS_OPTIONS, cfg.row)}</select>
+      </div>
+      <div class="ctrl-group"><label>열 (X)</label>
+        <select onchange="updateCrossControl('col', this.value)">${opt(CROSS_AXIS_OPTIONS, cfg.col)}</select>
+      </div>
+      <div class="ctrl-group"><label>측정값</label>
+        <select onchange="updateCrossControl('metric', this.value)">${opt(CROSS_METRIC_OPTIONS, cfg.metric)}</select>
+      </div>
+      <div class="ctrl-group" style="margin-left:auto">
+        <button class="btn btn-ghost btn-sm" onclick="resetCrossConfig()" title="기본값으로 되돌리기">초기화</button>
+      </div>
+    </div>`;
+}
+
+function resetCrossConfig() {
+  state.cross = { row: 'subject', col: 'session', metric: 'avgRaw' };
+  renderGroupCross();
+  setTimeout(() => renderGroupCrossCharts(), 0);
+}
+
+function onCrossCellClick(rowKey, colKey) {
+  const records = getFilteredData();
+  const cfg = state.cross;
+  const subset = records.filter(r => crossKey(r, cfg.row) === rowKey && crossKey(r, cfg.col) === colKey);
+  if (!subset.length) {
+    toast('드릴다운', '해당 셀의 데이터가 없습니다', 'warning');
+    return;
+  }
+  const rowLabel = (CROSS_AXIS_OPTIONS.find(o => o.key === cfg.row) || {}).label || cfg.row;
+  const colLabel = (CROSS_AXIS_OPTIONS.find(o => o.key === cfg.col) || {}).label || cfg.col;
+  openDrilldown(`${rowLabel}=${rowKey} / ${colLabel}=${colKey}`, subset);
+}
+
+function renderGroupCrossCharts() {
+  const data = getFilteredData();
+  const cfg = state.cross;
+  const { rowKeys, colKeys, cells, error } = buildCrossMatrix(data);
+  const ctx = document.getElementById('crossChart');
+  if (!ctx) return;
+  if (charts.cross) { try { charts.cross.destroy(); } catch (e) {} delete charts.cross; }
+  if (error || !rowKeys.length) return;
+
+  // Aggregate per row (mean across columns)
+  const rowAgg = rowKeys.map(rk => {
+    const vals = colKeys.map(ck => cells[rk][ck].value).filter(v => v != null);
+    return vals.length ? vals.reduce((s,v)=>s+v,0) / vals.length : null;
+  });
+  const allValues = rowKeys.flatMap(r => colKeys.map(c => cells[r][c].value)).filter(v => v != null);
+  const minV = Math.min(...allValues), maxV = Math.max(...allValues);
+  const colors = rowAgg.map(v => colorForCrossCell(v, cfg.metric, minV, maxV));
+
+  charts.cross = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: rowKeys,
+      datasets: [{
+        label: (CROSS_METRIC_OPTIONS.find(o => o.key === cfg.metric) || {}).label || cfg.metric,
+        data: rowAgg,
+        backgroundColor: colors,
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      indexAxis: 'y',
+      scales: cfg.metric === 'avgGrade'
+        ? { x: { reverse: true, min: 0, max: 9, title: { display: true, text: '등급 (낮을수록 좋음)' } } }
+        : { x: { beginAtZero: true } },
+      plugins: { legend: { display: false } },
+      onClick: (ev, items, c) => {
+        if (!items.length) return;
+        const rk = rowKeys[items[0].index];
+        // Sum all cols of this row
+        const subset = colKeys.flatMap(ck => cells[rk][ck].records);
+        const rowLabel = (CROSS_AXIS_OPTIONS.find(o => o.key === cfg.row) || {}).label || cfg.row;
+        openDrilldown(`${rowLabel}=${rk} (전체 열 합계)`, subset);
+      }
+    }
+  });
+}
+
+/* ============================================================
+   CUSTOM GROUPS — Manager Modal & sidebar integration
+   ============================================================ */
+function openGroupManager() {
+  if (!state.parsedData || state.parsedData.length === 0) {
+    toast('데이터 없음', '먼저 분석 데이터를 업로드하세요', 'warning');
+    return;
+  }
+  const modal = document.getElementById('groupManagerModal');
+  if (!modal) return;
+  renderGroupManager();
+  modal.classList.add('show');
+}
+function closeGroupManager() {
+  const modal = document.getElementById('groupManagerModal');
+  if (modal) modal.classList.remove('show');
+}
+
+function renderGroupManager() {
+  const body = document.getElementById('groupManagerBody');
+  if (!body) return;
+  const groups = state.customGroups || [];
+  const allStudents = [...new Map((state.parsedData || []).map(r => [r.studentId, r])).values()]
+    .filter(r => r.studentId)
+    .sort((a, b) => String(a.studentId).localeCompare(String(b.studentId)));
+
+  // Top: existing groups list
+  let html = '<div style="margin-bottom:18px">';
+  html += '<div style="font-weight:600;font-size:13px;margin-bottom:8px;display:flex;align-items:center;gap:8px">';
+  html += `📁 내 그룹 <span style="font-weight:400;color:var(--text-muted);font-size:11.5px">${groups.length}개</span>`;
+  html += '</div>';
+  if (groups.length === 0) {
+    html += '<div class="drilldown-empty" style="padding:24px;border:1px dashed var(--border);border-radius:var(--radius)">아직 그룹이 없습니다. 아래에서 학생을 선택해 새 그룹을 만드세요.</div>';
+  } else {
+    groups.forEach(g => {
+      html += `
+        <div class="group-card">
+          <span class="group-color-dot" style="background:${g.color}"></span>
+          <div style="flex:1;min-width:0">
+            <div class="group-name">${escapeHtml(g.name)}</div>
+            <div class="group-meta">${g.studentIds.length}명 · ${g.note ? escapeHtml(g.note) + ' · ' : ''}${new Date(g.createdAt).toLocaleDateString()}</div>
+          </div>
+          <div class="group-actions">
+            <button onclick="onGroupViewClick('${g.id}')" title="이 그룹의 데이터 보기">🔍 보기</button>
+            <button onclick="onGroupRenameClick('${g.id}')" title="이름 변경">이름</button>
+            <button class="danger" onclick="onGroupDeleteClick('${g.id}')" title="삭제">삭제</button>
+          </div>
+        </div>`;
+    });
+  }
+  html += '</div>';
+
+  // Bottom: create new group form
+  html += '<div style="border-top:1px solid var(--border);padding-top:18px">';
+  html += '<div style="font-weight:600;font-size:13px;margin-bottom:8px">➕ 새 그룹 만들기</div>';
+  html += `<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
+    <input type="text" id="newGroupName" placeholder="그룹 이름 (예: 우수반, 보충반, 추적학생 A)"
+      style="flex:1;min-width:200px;padding:8px 12px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:13px">
+    <div class="group-color-picker" id="newGroupColors">
+      ${GROUP_COLORS.map((c, i) => `<span class="group-color-swatch ${i === 0 ? 'selected' : ''}" data-color="${c}" style="background:${c}" onclick="onGroupColorPick(this)"></span>`).join('')}
+    </div>
+  </div>`;
+  html += `<div style="margin-bottom:8px;font-size:12px;color:var(--text-muted)">
+    학생 검색 또는 체크박스로 선택 — 좌측 학번 클릭 시 토글 (Shift+클릭은 범위 선택)
+    <span id="newGroupCount" style="margin-left:8px;font-weight:600;color:var(--text)">0명 선택</span>
+  </div>`;
+  html += `<input type="text" id="groupStudentFilter" placeholder="학번/이름/반 검색..."
+    oninput="filterGroupStudentList()"
+    style="width:100%;padding:6px 10px;border:1px solid var(--border);border-radius:5px;font-family:inherit;font-size:12px;margin-bottom:6px">`;
+  html += `<div id="groupStudentList" style="max-height:300px;overflow-y:auto;border:1px solid var(--border);border-radius:6px;padding:6px;background:var(--bg-elevated)">`;
+  allStudents.forEach((r, i) => {
+    const cls = r.className || '';
+    const num = r.classNumber || '';
+    const cn = (cls && num) ? `${cls}-${num}` : (cls || '');
+    html += `<label class="group-student-row" data-studentid="${escapeHtml(r.studentId)}" data-haystack="${escapeHtml((r.studentId || '') + ' ' + (r.studentName || '') + ' ' + cn)}"
+      style="display:flex;align-items:center;gap:8px;padding:4px 8px;font-size:12px;cursor:pointer;border-radius:4px"
+      onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background=''">
+      <input type="checkbox" value="${escapeHtml(r.studentId)}" onchange="updateGroupStudentCount()" style="cursor:pointer">
+      <span style="font-variant-numeric:tabular-nums;color:var(--text-muted);min-width:80px">${escapeHtml(r.studentId)}</span>
+      <span style="flex:1;font-weight:500">${escapeHtml(r.studentName || '(이름없음)')}</span>
+      <span style="color:var(--text-muted);font-size:11px">${escapeHtml(cn)}</span>
+    </label>`;
+  });
+  html += '</div>';
+  html += `<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px">
+    <span style="font-size:11px;color:var(--text-muted)">전체 ${allStudents.length}명</span>
+    <button class="btn btn-primary btn-sm" onclick="onGroupCreateSubmit()">그룹 생성</button>
+  </div>`;
+  html += '</div>';
+  body.innerHTML = html;
+}
+
+function filterGroupStudentList() {
+  const q = (document.getElementById('groupStudentFilter')?.value || '').toLowerCase().trim();
+  document.querySelectorAll('#groupStudentList .group-student-row').forEach(el => {
+    const hay = (el.dataset.haystack || '').toLowerCase();
+    el.style.display = !q || hay.includes(q) ? 'flex' : 'none';
+  });
+}
+function updateGroupStudentCount() {
+  const checked = document.querySelectorAll('#groupStudentList input[type="checkbox"]:checked').length;
+  const el = document.getElementById('newGroupCount');
+  if (el) el.textContent = `${checked}명 선택`;
+}
+function onGroupColorPick(el) {
+  document.querySelectorAll('#newGroupColors .group-color-swatch').forEach(s => s.classList.remove('selected'));
+  el.classList.add('selected');
+}
+function onGroupCreateSubmit() {
+  const name = (document.getElementById('newGroupName')?.value || '').trim();
+  if (!name) { toast('그룹 이름 필요', '이름을 입력하세요', 'warning'); return; }
+  if ((state.customGroups || []).find(g => g.name === name)) {
+    toast('중복', '이미 같은 이름의 그룹이 있습니다', 'warning'); return;
+  }
+  const colorEl = document.querySelector('#newGroupColors .group-color-swatch.selected');
+  const color = colorEl?.dataset.color || GROUP_COLORS[0];
+  const studentIds = [...document.querySelectorAll('#groupStudentList input[type="checkbox"]:checked')].map(i => i.value);
+  if (!studentIds.length) { toast('학생 미선택', '최소 1명 이상 선택하세요', 'warning'); return; }
+  state.customGroups = state.customGroups || [];
+  state.customGroups.push({ id: newGroupId(), name, color, studentIds, note: '', createdAt: new Date().toISOString() });
+  saveCustomGroups();
+  renderGroupManager();
+  try { renderSidebar(); } catch (e) {}
+  toast('그룹 생성 완료', `${name} (${studentIds.length}명)`, 'success');
+}
+function onGroupRenameClick(id) {
+  const g = findGroup(id);
+  if (!g) return;
+  const newName = prompt('새 이름을 입력하세요', g.name);
+  if (!newName || !newName.trim() || newName.trim() === g.name) return;
+  if (state.customGroups.find(x => x.name === newName.trim() && x.id !== id)) {
+    toast('중복', '이미 같은 이름이 있습니다', 'warning'); return;
+  }
+  g.name = newName.trim();
+  saveCustomGroups(); renderGroupManager(); try { renderSidebar(); } catch (e) {}
+}
+function onGroupDeleteClick(id) {
+  const g = findGroup(id);
+  if (!g) return;
+  if (!confirm(`그룹 "${g.name}" 을(를) 삭제할까요?`)) return;
+  state.customGroups = (state.customGroups || []).filter(x => x.id !== id);
+  // Also clear from active filters
+  state.filters.customGroups = (state.filters.customGroups || []).filter(gid => gid !== id);
+  saveCustomGroups();
+  renderGroupManager();
+  try { renderSidebar(); } catch (e) {}
+  toast('삭제됨', g.name, 'success');
+}
+function onGroupViewClick(id) {
+  const g = findGroup(id);
+  if (!g) return;
+  const set = new Set(g.studentIds);
+  const records = (state.parsedData || []).filter(r => set.has(r.studentId));
+  closeGroupManager();
+  openDrilldown(`그룹: ${g.name} (${g.studentIds.length}명)`, records);
+}
+function toggleGroupFilter(id) {
+  state.filters.customGroups = state.filters.customGroups || [];
+  const idx = state.filters.customGroups.indexOf(id);
+  if (idx >= 0) state.filters.customGroups.splice(idx, 1);
+  else state.filters.customGroups.push(id);
+  applyFilters();
+  try { renderSidebar(); } catch (e) {}
+}
+
+/* ============================================================
+   CHART STUDIO — 16+ chart types via Plotly, save to library, embed in report
+   ============================================================ */
+const CUSTOM_CHARTS_KEY = 'grade-analyzer-custom-charts-v1';
+
+const CHART_TYPES = [
+  // Excel-mapped types — key, label, family, needs (axes/grouping requirements)
+  { key: 'bar',         label: '세로 막대',     family: 'bar',   icon: '<rect x="3" y="10" width="4" height="11"/><rect x="10" y="6" width="4" height="15"/><rect x="17" y="13" width="4" height="8"/>', needs: { x: true, y: true, group: false } },
+  { key: 'bar-group',   label: '그룹 막대',     family: 'bar',   icon: '<rect x="3" y="10" width="3" height="11"/><rect x="6" y="13" width="3" height="8"/><rect x="11" y="6" width="3" height="15"/><rect x="14" y="11" width="3" height="10"/>', needs: { x: true, y: true, group: true } },
+  { key: 'bar-stack',   label: '누적 막대',     family: 'bar',   icon: '<rect x="4" y="14" width="6" height="7"/><rect x="4" y="6" width="6" height="8"/><rect x="14" y="11" width="6" height="10"/><rect x="14" y="3" width="6" height="8"/>', needs: { x: true, y: true, group: true } },
+  { key: 'bar-100',     label: '100% 누적',    family: 'bar',   icon: '<rect x="4" y="13" width="6" height="8"/><rect x="4" y="3" width="6" height="10"/><rect x="14" y="9" width="6" height="12"/><rect x="14" y="3" width="6" height="6"/>', needs: { x: true, y: true, group: true } },
+  { key: 'barh',        label: '가로 막대',     family: 'bar',   icon: '<rect x="3" y="4" width="11" height="3"/><rect x="3" y="10" width="17" height="3"/><rect x="3" y="16" width="8" height="3"/>', needs: { x: true, y: true, group: false } },
+  { key: 'line',        label: '선',            family: 'line',  icon: '<polyline points="3,16 7,11 11,13 15,5 21,9"/>', needs: { x: true, y: true, group: false } },
+  { key: 'line-marker', label: '선+점',         family: 'line',  icon: '<polyline points="3,16 7,11 11,13 15,5 21,9"/><circle cx="7" cy="11" r="1.5"/><circle cx="11" cy="13" r="1.5"/><circle cx="15" cy="5" r="1.5"/>', needs: { x: true, y: true, group: false } },
+  { key: 'area',        label: '영역',          family: 'line',  icon: '<polygon points="3,21 3,16 7,11 11,13 15,5 21,9 21,21"/>', needs: { x: true, y: true, group: false } },
+  { key: 'area-stack',  label: '누적 영역',     family: 'line',  icon: '<polygon points="3,21 3,17 11,11 21,15 21,21"/><polygon points="3,17 11,11 21,15 21,9 11,5 3,11" opacity="0.5"/>', needs: { x: true, y: true, group: true } },
+  { key: 'pie',         label: '파이',          family: 'pie',   icon: '<circle cx="12" cy="12" r="9"/><path d="M12,12 L12,3 A9,9 0 0 1 21,12 z"/>', needs: { x: true, y: true, group: false } },
+  { key: 'donut',       label: '도넛',          family: 'pie',   icon: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4" fill="white" stroke="white"/><path d="M12,3 A9,9 0 0 1 21,12 L17,12 A5,5 0 0 0 12,7 z"/>', needs: { x: true, y: true, group: false } },
+  { key: 'scatter',     label: '산점도',        family: 'xy',    icon: '<circle cx="6" cy="16" r="1.5"/><circle cx="9" cy="11" r="1.5"/><circle cx="12" cy="14" r="1.5"/><circle cx="15" cy="7" r="1.5"/><circle cx="18" cy="10" r="1.5"/>', needs: { x: true, y: true, group: false, numericX: true } },
+  { key: 'bubble',      label: '버블',          family: 'xy',    icon: '<circle cx="7" cy="15" r="3"/><circle cx="13" cy="9" r="2"/><circle cx="17" cy="14" r="4"/>', needs: { x: true, y: true, group: false, size: true, numericX: true } },
+  { key: 'radar',       label: '레이더',        family: 'radar', icon: '<polygon points="12,3 19,9 17,18 7,18 5,9"/><polygon points="12,7 16,10 14,16 10,16 8,10" opacity="0.4"/>', needs: { x: true, y: true, group: false } },
+  { key: 'box',         label: '박스 플롯',     family: 'stat',  icon: '<rect x="6" y="9" width="3" height="8"/><line x1="7.5" y1="3" x2="7.5" y2="9"/><line x1="7.5" y1="17" x2="7.5" y2="21"/><rect x="14" y="6" width="3" height="11"/><line x1="15.5" y1="3" x2="15.5" y2="6"/><line x1="15.5" y1="17" x2="15.5" y2="21"/>', needs: { x: true, y: true, group: false, recordLevel: true } },
+  { key: 'violin',      label: '바이올린',      family: 'stat',  icon: '<path d="M7 4 Q4 12 7 20 Q10 12 7 4"/><path d="M16 4 Q12 12 16 20 Q20 12 16 4"/>', needs: { x: true, y: true, group: false, recordLevel: true } },
+  { key: 'histogram',   label: '히스토그램',    family: 'stat',  icon: '<rect x="3" y="13" width="3" height="8"/><rect x="6" y="9" width="3" height="12"/><rect x="9" y="5" width="3" height="16"/><rect x="12" y="7" width="3" height="14"/><rect x="15" y="11" width="3" height="10"/><rect x="18" y="15" width="3" height="6"/>', needs: { x: true, y: false, group: false, recordLevel: true, numericX: true } },
+  { key: 'heatmap',     label: '히트맵',        family: 'matrix',icon: '<rect x="3" y="3" width="6" height="6" opacity="0.3"/><rect x="9" y="3" width="6" height="6" opacity="0.6"/><rect x="15" y="3" width="6" height="6"/><rect x="3" y="9" width="6" height="6" opacity="0.5"/><rect x="9" y="9" width="6" height="6" opacity="0.4"/><rect x="15" y="9" width="6" height="6" opacity="0.7"/><rect x="3" y="15" width="6" height="6"/><rect x="9" y="15" width="6" height="6" opacity="0.5"/><rect x="15" y="15" width="6" height="6" opacity="0.3"/>', needs: { x: true, y: true, group: true } },
+  { key: 'waterfall',   label: '워터폴',        family: 'special',icon:'<rect x="3" y="14" width="3" height="6"/><rect x="7" y="10" width="3" height="4"/><rect x="11" y="10" width="3" height="6"/><rect x="15" y="6" width="3" height="4"/><rect x="19" y="3" width="2" height="17"/>', needs: { x: true, y: true, group: false } },
+  { key: 'funnel',      label: '깔때기',        family: 'special',icon:'<polygon points="3,4 21,4 18,9 6,9"/><polygon points="6,11 18,11 16,15 8,15"/><polygon points="8,17 16,17 14,21 10,21"/>', needs: { x: true, y: true, group: false } },
+  { key: 'treemap',     label: '트리맵',        family: 'special',icon:'<rect x="3" y="3" width="11" height="12"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="10" width="7" height="5"/><rect x="3" y="15" width="9" height="6"/><rect x="12" y="15" width="9" height="6"/>', needs: { x: true, y: true, group: false } },
+  { key: 'sunburst',    label: '선버스트',      family: 'special',icon:'<circle cx="12" cy="12" r="4"/><path d="M12,8 A4,4 0 0,1 16,12 L20,12 A8,8 0 0,0 12,4 z"/><path d="M16,12 A4,4 0 0,1 12,16 L12,20 A8,8 0 0,0 20,12 z" opacity="0.6"/>', needs: { x: true, y: true, group: false } },
+  { key: 'scatter3d',   label: '3D 산점도',     family: 'xy',    icon: '<circle cx="7" cy="13" r="1.8"/><circle cx="11" cy="9" r="1.8"/><circle cx="15" cy="14" r="1.8"/><circle cx="18" cy="6" r="1.8"/><circle cx="9" cy="17" r="1.8"/>', needs: { x: true, y: true, z: true, group: false, numericX: true } },
+];
+
+const CHART_AXIS_OPTIONS = [
+  { key: 'subject',     label: '과목' },
+  { key: 'session',     label: '회차' },
+  { key: 'year',        label: '학년도' },
+  { key: 'className',   label: '반' },
+  { key: 'grade',       label: '학년' },
+  { key: 'gender',      label: '성별' },
+  { key: 'track',       label: '계열' },
+  { key: 'grade9',label: '석차등급' },
+  { key: 'gradeBucket', label: '등급대' },
+  { key: 'studentName', label: '학생명' },
+  { key: 'studentId',   label: '학번' },
+  { key: 'rawScore',    label: '원점수 (수치)' },
+  { key: 'standardScore', label: '표준점수 (수치)' },
+  { key: 'percentile',  label: '백분위 (수치)' },
+];
+const CHART_METRIC_OPTIONS = [
+  { key: 'avgRaw',         label: '평균 원점수' },
+  { key: 'avgStandard',    label: '평균 표준점수' },
+  { key: 'avgPercentile',  label: '평균 백분위' },
+  { key: 'avgGrade',       label: '평균 등급' },
+  { key: 'sumRaw',         label: '원점수 합계' },
+  { key: 'count',          label: '데이터 수' },
+  { key: 'distinctStudents', label: '학생 수' },
+  { key: 'maxRaw',         label: '최고 원점수' },
+  { key: 'minRaw',         label: '최저 원점수' },
+  { key: 'medianRaw',      label: '중앙값 원점수' },
+];
+const CHART_SCOPE_OPTIONS = [
+  { key: 'filtered', label: '현재 필터 적용 데이터' },
+  { key: 'all',      label: '전체 데이터' },
+];
+
+function csKeyOf(r, axis) {
+  if (axis === 'subject') return r.subjectGroup || r.subject || '(미상)';
+  if (axis === 'gradeBucket') {
+    const g = Number(r.grade9);
+    if (!g) return '(미상)';
+    if (g <= 2) return '1-2등급';
+    if (g <= 4) return '3-4등급';
+    if (g <= 6) return '5-6등급';
+    return '7-9등급';
+  }
+  const v = r[axis];
+  return v == null || v === '' ? '(미상)' : String(v);
+}
+function csNumeric(r, field) {
+  const v = r[field];
+  if (v == null || v === '') return null;
+  const n = Number(v);
+  return isNaN(n) ? null : n;
+}
+function csAggregate(records, metric) {
+  if (!records.length) return null;
+  if (metric === 'count') return records.length;
+  if (metric === 'distinctStudents') return new Set(records.map(r => r.studentId)).size;
+  const fieldMap = {
+    avgRaw: 'rawScore', avgStandard: 'standardScore',
+    avgPercentile: 'percentile', avgGrade: 'grade9',
+    sumRaw: 'rawScore', maxRaw: 'rawScore', minRaw: 'rawScore', medianRaw: 'rawScore',
+  };
+  const f = fieldMap[metric];
+  if (!f) return null;
+  const vals = records.map(r => Number(r[f])).filter(v => !isNaN(v) && v != null);
+  if (!vals.length) return null;
+  if (metric === 'sumRaw') return vals.reduce((s,v)=>s+v,0);
+  if (metric === 'maxRaw') return Math.max(...vals);
+  if (metric === 'minRaw') return Math.min(...vals);
+  if (metric === 'medianRaw') {
+    const sorted = [...vals].sort((a,b)=>a-b);
+    const m = Math.floor(sorted.length / 2);
+    return sorted.length % 2 ? sorted[m] : (sorted[m-1] + sorted[m]) / 2;
+  }
+  return vals.reduce((s,v)=>s+v,0) / vals.length;
+}
+
+function loadCustomCharts() {
+  try {
+    const raw = localStorage.getItem(CUSTOM_CHARTS_KEY);
+    if (!raw) return [];
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr) ? arr : [];
+  } catch (e) { return []; }
+}
+function saveCustomCharts() {
+  try { localStorage.setItem(CUSTOM_CHARTS_KEY, JSON.stringify(state.customCharts || [])); }
+  catch (e) { console.error('saveCustomCharts failed:', e); }
+}
+
+function defaultChartStudioConfig() {
+  return {
+    name: '',
+    desc: '',
+    type: 'bar',
+    scope: 'filtered',
+    x: 'subject',
+    y: 'rawScore',     // numeric field for record-level types (histogram/box/scatter)
+    group: '',         // grouping (color) axis — empty = none
+    metric: 'avgRaw',  // for aggregated types
+    z: 'percentile',   // for 3D scatter
+    sizeBy: 'rawScore',// for bubble
+    binCount: 20,      // histogram bin count
+    sortBy: 'value',   // 'label' | 'value' | 'none'
+    title: '',
+  };
+}
+
+function openChartStudio(seedConfig) {
+  if (!state.parsedData || state.parsedData.length === 0) {
+    toast('데이터 없음', '먼저 분석 데이터를 업로드하세요', 'warning');
+    return;
+  }
+  state.chartStudio = seedConfig
+    ? Object.assign(defaultChartStudioConfig(), seedConfig)
+    : defaultChartStudioConfig();
+  renderChartStudio();
+  document.getElementById('chartStudioModal').classList.add('show');
+  setTimeout(() => renderChartStudioPreview(), 80);
+}
+function closeChartStudio() {
+  const m = document.getElementById('chartStudioModal');
+  if (!m) return;
+  // Cleanup Plotly instance to avoid memory leak
+  try { Plotly.purge(document.getElementById('chartStudioCanvas')); } catch (e) {}
+  m.classList.remove('show');
+}
+function resetChartStudio() {
+  state.chartStudio = defaultChartStudioConfig();
+  renderChartStudio();
+  setTimeout(() => renderChartStudioPreview(), 30);
+}
+
+function setChartStudioField(field, value) {
+  if (!state.chartStudio) state.chartStudio = defaultChartStudioConfig();
+  state.chartStudio[field] = value;
+  // Type change may require re-rendering config (different needs)
+  if (field === 'type') renderChartStudio();
+  setTimeout(() => renderChartStudioPreview(), 30);
+}
+
+function renderChartStudio() {
+  const cfg = state.chartStudio || defaultChartStudioConfig();
+  const typeMeta = CHART_TYPES.find(t => t.key === cfg.type) || CHART_TYPES[0];
+  const needs = typeMeta.needs;
+
+  // Type grid (group by family)
+  const typeGrid = CHART_TYPES.map(t => `
+    <button class="cs-type-btn ${cfg.type === t.key ? 'active' : ''}" onclick="setChartStudioField('type','${t.key}')" title="${t.label}">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="0.5">${t.icon}</svg>
+      <span>${t.label}</span>
+    </button>`).join('');
+
+  const optHtml = (list, current) => list.map(o => `<option value="${o.key}" ${o.key === current ? 'selected' : ''}>${o.label}</option>`).join('');
+
+  // Build axis controls based on chart type needs
+  let axisHtml = '';
+  if (needs.recordLevel) {
+    // histogram/box/violin: x is numeric/categorical, y is numeric (records)
+    if (typeMeta.key === 'histogram') {
+      axisHtml += `<div class="cs-row"><label>값(X)</label>
+        <select onchange="setChartStudioField('x', this.value)">${optHtml(CHART_AXIS_OPTIONS.filter(o => ['rawScore','standardScore','percentile','grade9'].includes(o.key)), cfg.x)}</select></div>`;
+      axisHtml += `<div class="cs-row"><label>구간 수</label>
+        <input type="number" min="5" max="60" value="${cfg.binCount}" onchange="setChartStudioField('binCount', Number(this.value))"></div>`;
+    } else {
+      axisHtml += `<div class="cs-row"><label>분류(X)</label>
+        <select onchange="setChartStudioField('x', this.value)">${optHtml(CHART_AXIS_OPTIONS.filter(o => !['rawScore','standardScore','percentile'].includes(o.key)), cfg.x)}</select></div>`;
+      axisHtml += `<div class="cs-row"><label>값(Y)</label>
+        <select onchange="setChartStudioField('y', this.value)">${optHtml(CHART_AXIS_OPTIONS.filter(o => ['rawScore','standardScore','percentile','grade9'].includes(o.key)), cfg.y)}</select></div>`;
+    }
+  } else if (typeMeta.family === 'xy') {
+    axisHtml += `<div class="cs-row"><label>X 축</label>
+      <select onchange="setChartStudioField('x', this.value)">${optHtml(CHART_AXIS_OPTIONS.filter(o => ['rawScore','standardScore','percentile','grade9'].includes(o.key)), cfg.x)}</select></div>`;
+    axisHtml += `<div class="cs-row"><label>Y 축</label>
+      <select onchange="setChartStudioField('y', this.value)">${optHtml(CHART_AXIS_OPTIONS.filter(o => ['rawScore','standardScore','percentile','grade9'].includes(o.key)), cfg.y)}</select></div>`;
+    if (needs.size) {
+      axisHtml += `<div class="cs-row"><label>크기</label>
+        <select onchange="setChartStudioField('sizeBy', this.value)">${optHtml(CHART_AXIS_OPTIONS.filter(o => ['rawScore','standardScore','percentile'].includes(o.key)), cfg.sizeBy)}</select></div>`;
+    }
+    if (needs.z) {
+      axisHtml += `<div class="cs-row"><label>Z 축</label>
+        <select onchange="setChartStudioField('z', this.value)">${optHtml(CHART_AXIS_OPTIONS.filter(o => ['rawScore','standardScore','percentile'].includes(o.key)), cfg.z)}</select></div>`;
+    }
+  } else {
+    // Aggregated types (bar/line/area/pie/radar/heatmap/waterfall/funnel/treemap/sunburst)
+    axisHtml += `<div class="cs-row"><label>${typeMeta.family === 'pie' || typeMeta.key === 'funnel' || typeMeta.key === 'treemap' || typeMeta.key === 'sunburst' ? '범주' : 'X 축'}</label>
+      <select onchange="setChartStudioField('x', this.value)">${optHtml(CHART_AXIS_OPTIONS.filter(o => !['rawScore','standardScore','percentile'].includes(o.key)), cfg.x)}</select></div>`;
+    if (needs.group) {
+      axisHtml += `<div class="cs-row"><label>그룹</label>
+        <select onchange="setChartStudioField('group', this.value)">
+          <option value="" ${!cfg.group ? 'selected' : ''}>(없음)</option>
+          ${optHtml(CHART_AXIS_OPTIONS.filter(o => !['rawScore','standardScore','percentile'].includes(o.key)), cfg.group)}
+        </select></div>`;
+    }
+    axisHtml += `<div class="cs-row"><label>측정값</label>
+      <select onchange="setChartStudioField('metric', this.value)">${optHtml(CHART_METRIC_OPTIONS, cfg.metric)}</select></div>`;
+  }
+
+  const sortHtml = needs.recordLevel ? '' : `<div class="cs-row"><label>정렬</label>
+    <select onchange="setChartStudioField('sortBy', this.value)">
+      <option value="value" ${cfg.sortBy === 'value' ? 'selected' : ''}>값 순</option>
+      <option value="label" ${cfg.sortBy === 'label' ? 'selected' : ''}>이름 순</option>
+      <option value="none" ${cfg.sortBy === 'none' ? 'selected' : ''}>입력 순</option>
+    </select></div>`;
+
+  const html = `
+    <div class="cs-section">
+      <div class="cs-section-label">차트 종류 (16종)</div>
+      <div class="cs-type-grid">${typeGrid}</div>
+    </div>
+    <div class="cs-section">
+      <div class="cs-section-label">데이터</div>
+      <div class="cs-row"><label>범위</label>
+        <select onchange="setChartStudioField('scope', this.value)">${optHtml(CHART_SCOPE_OPTIONS, cfg.scope)}</select></div>
+      ${axisHtml}
+      ${sortHtml}
+    </div>
+    <div class="cs-section">
+      <div class="cs-section-label">제목·메모</div>
+      <div class="cs-row"><label>제목</label>
+        <input type="text" value="${escapeHtml(cfg.title)}" placeholder="(자동 생성)" oninput="setChartStudioField('title', this.value)"></div>
+      <div class="cs-row"><label>이름</label>
+        <input type="text" value="${escapeHtml(cfg.name)}" placeholder="저장 시 사용 — 예: 1학년 과목별 평균" oninput="setChartStudioField('name', this.value)"></div>
+      <div class="cs-row"><label>설명</label>
+        <input type="text" value="${escapeHtml(cfg.desc)}" placeholder="(선택) 보고서 설명문" oninput="setChartStudioField('desc', this.value)"></div>
+    </div>
+    <div class="cs-help">
+      💡 차트 종류를 바꾸면 필요한 축이 자동으로 표시됩니다.<br>
+      💡 좌측 설정 변경 시 우측 미리보기가 즉시 갱신됩니다.<br>
+      💡 <strong>내 차트로 저장</strong>하면 보고서 옵션에서 체크해 PPT/Excel 보고서에 포함시킬 수 있습니다.
+    </div>`;
+  const cfgEl = document.getElementById('chartStudioConfig');
+  if (cfgEl) cfgEl.innerHTML = html;
+}
+
+function chartStudioRecords() {
+  const cfg = state.chartStudio || defaultChartStudioConfig();
+  return cfg.scope === 'all' ? (state.parsedData || []) : getFilteredData();
+}
+
+/* Build Plotly trace+layout for the current studio config (or any saved config). */
+function buildPlotlyChart(cfg, records) {
+  records = records || (state.parsedData || []);
+  const typeMeta = CHART_TYPES.find(t => t.key === cfg.type) || CHART_TYPES[0];
+  const xLabel = (CHART_AXIS_OPTIONS.find(o => o.key === cfg.x) || {}).label || cfg.x;
+  const yLabel = (CHART_AXIS_OPTIONS.find(o => o.key === cfg.y) || {}).label || cfg.y;
+  const metricLabel = (CHART_METRIC_OPTIONS.find(o => o.key === cfg.metric) || {}).label || cfg.metric;
+  const title = cfg.title || `${cfg.type} — ${xLabel}${typeMeta.family === 'pie' ? '' : (typeMeta.needs.recordLevel ? ' / ' + yLabel : ' / ' + metricLabel)}`;
+  const baseLayout = {
+    title: { text: title, font: { size: 14 } },
+    margin: { t: 50, l: 60, r: 30, b: 60 },
+    font: { family: "Pretendard, -apple-system, system-ui, sans-serif", size: 12 },
+    paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
+    autosize: true,
+  };
+  const palette = ['#4E79A7','#F28E2B','#E15759','#76B7B2','#59A14F','#EDC948','#B07AA1','#FF9DA7','#9C755F','#BAB0AC'];
+
+  // ---- record-level types (histogram/box/violin) ----
+  if (typeMeta.key === 'histogram') {
+    const vals = records.map(r => csNumeric(r, cfg.x)).filter(v => v != null);
+    return {
+      data: [{ type: 'histogram', x: vals, nbinsx: cfg.binCount || 20, marker: { color: palette[0] } }],
+      layout: Object.assign({}, baseLayout, { xaxis: { title: xLabel }, yaxis: { title: '빈도' } }),
+    };
+  }
+  if (typeMeta.key === 'box' || typeMeta.key === 'violin') {
+    const groups = {};
+    records.forEach(r => {
+      const k = csKeyOf(r, cfg.x);
+      const v = csNumeric(r, cfg.y);
+      if (v == null) return;
+      (groups[k] = groups[k] || []).push(v);
+    });
+    const traces = Object.entries(groups).map(([k, vals], i) => ({
+      type: typeMeta.key, name: k, y: vals,
+      box: typeMeta.key === 'violin' ? { visible: true } : undefined,
+      meanline: typeMeta.key === 'violin' ? { visible: true } : undefined,
+      marker: { color: palette[i % palette.length] },
+      boxpoints: typeMeta.key === 'box' ? 'outliers' : undefined,
+    }));
+    return {
+      data: traces,
+      layout: Object.assign({}, baseLayout, { xaxis: { title: xLabel }, yaxis: { title: yLabel }, showlegend: traces.length > 1 }),
+    };
+  }
+  if (typeMeta.family === 'xy') {
+    if (typeMeta.key === 'scatter3d') {
+      const xs = records.map(r => csNumeric(r, cfg.x));
+      const ys = records.map(r => csNumeric(r, cfg.y));
+      const zs = records.map(r => csNumeric(r, cfg.z));
+      const text = records.map(r => `${r.studentName || ''} (${r.subject || ''})`);
+      return {
+        data: [{ type: 'scatter3d', mode: 'markers', x: xs, y: ys, z: zs, text,
+          marker: { size: 4, color: palette[0], opacity: 0.7 } }],
+        layout: Object.assign({}, baseLayout, { scene: { xaxis: { title: xLabel }, yaxis: { title: yLabel }, zaxis: { title: (CHART_AXIS_OPTIONS.find(o => o.key === cfg.z) || {}).label || cfg.z } } }),
+      };
+    }
+    if (typeMeta.key === 'bubble') {
+      const data = records.map(r => ({ x: csNumeric(r, cfg.x), y: csNumeric(r, cfg.y), s: csNumeric(r, cfg.sizeBy), name: r.studentName || '' }))
+        .filter(d => d.x != null && d.y != null && d.s != null);
+      const sMax = Math.max(...data.map(d => d.s), 1);
+      return {
+        data: [{ type: 'scatter', mode: 'markers',
+          x: data.map(d => d.x), y: data.map(d => d.y), text: data.map(d => d.name),
+          marker: { size: data.map(d => 5 + 30 * d.s / sMax), color: palette[0], opacity: 0.6 } }],
+        layout: Object.assign({}, baseLayout, { xaxis: { title: xLabel }, yaxis: { title: yLabel } }),
+      };
+    }
+    // 2D scatter
+    const data = records.map(r => ({ x: csNumeric(r, cfg.x), y: csNumeric(r, cfg.y), name: r.studentName || '' }))
+      .filter(d => d.x != null && d.y != null);
+    return {
+      data: [{ type: 'scatter', mode: 'markers',
+        x: data.map(d => d.x), y: data.map(d => d.y), text: data.map(d => d.name),
+        marker: { size: 6, color: palette[0], opacity: 0.65 } }],
+      layout: Object.assign({}, baseLayout, { xaxis: { title: xLabel }, yaxis: { title: yLabel } }),
+    };
+  }
+
+  // ---- aggregated types ----
+  const useGroup = typeMeta.needs.group && cfg.group;
+  // Build {x: aggregated_value} or {x:{group:value}}
+  const xSet = new Set(), groupSet = new Set();
+  const cells = {}; // cells[xKey][groupKey] = records
+  records.forEach(r => {
+    const xk = csKeyOf(r, cfg.x);
+    const gk = useGroup ? csKeyOf(r, cfg.group) : '_';
+    xSet.add(xk); if (useGroup) groupSet.add(gk);
+    if (!cells[xk]) cells[xk] = {};
+    (cells[xk][gk] = cells[xk][gk] || []).push(r);
+  });
+  let xKeys = [...xSet];
+  let gKeys = useGroup ? [...groupSet] : ['_'];
+  // Sort
+  const sortKeys = (arr, byValue) => {
+    if (cfg.sortBy === 'label') return arr.sort((a,b) => String(a).localeCompare(String(b),'ko'));
+    if (cfg.sortBy === 'value' && byValue) return arr.sort((a,b) => (byValue[b] || 0) - (byValue[a] || 0));
+    return arr;
+  };
+  if (cfg.sortBy === 'value') {
+    const xAgg = {};
+    xKeys.forEach(xk => { xAgg[xk] = csAggregate(Object.values(cells[xk] || {}).flat(), cfg.metric) || 0; });
+    sortKeys(xKeys, xAgg);
+  } else sortKeys(xKeys);
+  sortKeys(gKeys);
+
+  if (typeMeta.family === 'pie') {
+    const values = xKeys.map(xk => csAggregate(Object.values(cells[xk] || {}).flat(), cfg.metric));
+    return {
+      data: [{ type: 'pie', labels: xKeys, values,
+        hole: typeMeta.key === 'donut' ? 0.45 : 0,
+        marker: { colors: xKeys.map((_, i) => palette[i % palette.length]) },
+        textinfo: 'label+percent' }],
+      layout: Object.assign({}, baseLayout, { showlegend: true }),
+    };
+  }
+  if (typeMeta.key === 'radar') {
+    const values = xKeys.map(xk => csAggregate(Object.values(cells[xk] || {}).flat(), cfg.metric));
+    const closed = [...values, values[0]];
+    const closedX = [...xKeys, xKeys[0]];
+    return {
+      data: [{ type: 'scatterpolar', r: closed, theta: closedX, fill: 'toself', name: metricLabel,
+        line: { color: palette[0] }, marker: { color: palette[0] } }],
+      layout: Object.assign({}, baseLayout, { polar: { radialaxis: { visible: true } }, showlegend: false }),
+    };
+  }
+  if (typeMeta.key === 'heatmap') {
+    const z = gKeys.map(gk => xKeys.map(xk => csAggregate(cells[xk]?.[gk] || [], cfg.metric)));
+    return {
+      data: [{ type: 'heatmap', x: xKeys, y: gKeys, z, colorscale: 'YlGnBu', hovertemplate: `${xLabel}: %{x}<br>${(CHART_AXIS_OPTIONS.find(o=>o.key===cfg.group)||{}).label}: %{y}<br>${metricLabel}: %{z}<extra></extra>` }],
+      layout: Object.assign({}, baseLayout, { xaxis: { title: xLabel }, yaxis: { title: (CHART_AXIS_OPTIONS.find(o=>o.key===cfg.group)||{}).label || cfg.group } }),
+    };
+  }
+  if (typeMeta.key === 'treemap' || typeMeta.key === 'sunburst') {
+    const labels = xKeys, values = xKeys.map(xk => csAggregate(Object.values(cells[xk] || {}).flat(), cfg.metric));
+    return {
+      data: [{ type: typeMeta.key, labels, parents: labels.map(()=>''), values,
+        marker: { colors: labels.map((_, i) => palette[i % palette.length]) },
+        textinfo: 'label+value' }],
+      layout: Object.assign({}, baseLayout),
+    };
+  }
+  if (typeMeta.key === 'funnel') {
+    const values = xKeys.map(xk => csAggregate(Object.values(cells[xk] || {}).flat(), cfg.metric));
+    return {
+      data: [{ type: 'funnel', y: xKeys, x: values, marker: { color: palette[0] } }],
+      layout: Object.assign({}, baseLayout),
+    };
+  }
+  if (typeMeta.key === 'waterfall') {
+    const values = xKeys.map(xk => csAggregate(Object.values(cells[xk] || {}).flat(), cfg.metric));
+    return {
+      data: [{ type: 'waterfall', x: xKeys, y: values, measure: xKeys.map(()=>'relative'),
+        connector: { line: { color: 'rgba(63,63,63,0.4)' } },
+        increasing: { marker: { color: palette[4] } },
+        decreasing: { marker: { color: palette[2] } } }],
+      layout: Object.assign({}, baseLayout, { xaxis: { title: xLabel }, yaxis: { title: metricLabel } }),
+    };
+  }
+
+  // bar / line / area variants
+  const barMode = typeMeta.key === 'bar-stack' || typeMeta.key === 'bar-100' || typeMeta.key === 'area-stack' ? 'stack' : 'group';
+  const traces = gKeys.map((gk, i) => {
+    let yVals = xKeys.map(xk => csAggregate(cells[xk]?.[gk] || [], cfg.metric));
+    if (typeMeta.key === 'bar-100') {
+      // Normalize each x to 100%
+      yVals = xKeys.map((xk, j) => {
+        const total = gKeys.reduce((s, ggk) => s + (csAggregate(cells[xk]?.[ggk] || [], cfg.metric) || 0), 0);
+        return total ? (yVals[j] || 0) / total * 100 : 0;
+      });
+    }
+    const color = palette[i % palette.length];
+    if (typeMeta.family === 'line') {
+      return {
+        type: 'scatter', mode: typeMeta.key === 'line-marker' ? 'lines+markers' : 'lines',
+        x: xKeys, y: yVals, name: useGroup ? gk : metricLabel,
+        fill: typeMeta.key === 'area' ? 'tozeroy' : (typeMeta.key === 'area-stack' ? 'tonexty' : 'none'),
+        stackgroup: typeMeta.key === 'area-stack' ? 'one' : undefined,
+        line: { color, width: 2 }, marker: { color, size: 6 },
+      };
+    }
+    return {
+      type: 'bar', x: typeMeta.key === 'barh' ? yVals : xKeys, y: typeMeta.key === 'barh' ? xKeys : yVals,
+      orientation: typeMeta.key === 'barh' ? 'h' : 'v',
+      name: useGroup ? gk : metricLabel,
+      marker: { color },
+    };
+  });
+  return {
+    data: traces,
+    layout: Object.assign({}, baseLayout, {
+      barmode: barMode,
+      xaxis: typeMeta.key === 'barh' ? { title: typeMeta.key === 'bar-100' ? '%' : metricLabel } : { title: xLabel },
+      yaxis: typeMeta.key === 'barh' ? { title: xLabel } : { title: typeMeta.key === 'bar-100' ? '%' : metricLabel },
+      showlegend: useGroup,
+    }),
+  };
+}
+
+function renderChartStudioPreview() {
+  const cfg = state.chartStudio || defaultChartStudioConfig();
+  const records = chartStudioRecords();
+  const previewEl = document.getElementById('chartStudioPreview');
+  if (!previewEl) return;
+  if (!records.length) {
+    previewEl.innerHTML = '<div class="drilldown-empty">현재 범위에 데이터가 없습니다. 필터를 완화하거나 범위를 "전체 데이터"로 바꾸세요.</div>';
+    return;
+  }
+  previewEl.innerHTML = `
+    <div style="font-size:11.5px;color:var(--text-muted);margin-bottom:8px">
+      <strong style="color:var(--text)">${records.length.toLocaleString()}</strong>건 기준 — ${(CHART_SCOPE_OPTIONS.find(o => o.key === cfg.scope) || {}).label}
+    </div>
+    <div id="chartStudioCanvas" style="width:100%; height:520px;"></div>
+  `;
+  try {
+    const { data, layout } = buildPlotlyChart(cfg, records);
+    Plotly.newPlot('chartStudioCanvas', data, layout, { responsive: true, displayModeBar: true, displaylogo: false });
+  } catch (e) {
+    console.error('chart studio preview', e);
+    document.getElementById('chartStudioCanvas').innerHTML = `<div class="drilldown-empty">차트 생성 실패: ${escapeHtml(e.message)}</div>`;
+  }
+}
+
+async function plotlyToDataUrl(div, w, h) {
+  try { return await Plotly.toImage(div, { format: 'png', width: w || 800, height: h || 480 }); }
+  catch (e) { return null; }
+}
+
+async function saveCurrentChart() {
+  const cfg = state.chartStudio;
+  if (!cfg) { toast('차트 없음', '먼저 차트를 만드세요', 'warning'); return; }
+  if (!cfg.name || !cfg.name.trim()) {
+    const nm = prompt('차트 이름을 입력하세요 (보고서·라이브러리에서 사용)', cfg.title || '');
+    if (!nm || !nm.trim()) return;
+    cfg.name = nm.trim();
+  }
+  state.customCharts = state.customCharts || [];
+  // Capture thumbnail
+  let thumb = null;
+  try { thumb = await plotlyToDataUrl(document.getElementById('chartStudioCanvas'), 320, 200); }
+  catch (e) {}
+  state.customCharts.push({
+    id: 'chart_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+    name: cfg.name.trim(), desc: cfg.desc || '',
+    config: JSON.parse(JSON.stringify(cfg)),
+    thumb, includeInReport: true,
+    createdAt: new Date().toISOString(),
+  });
+  saveCustomCharts();
+  try { renderSidebar(); } catch (e) {}
+  toast('내 차트로 저장됨', `"${cfg.name.trim()}" — 보고서 옵션에서 포함 여부 조정 가능`, 'success');
+}
+
+async function exportChartStudioPng() {
+  const div = document.getElementById('chartStudioCanvas');
+  if (!div) return;
+  try {
+    const url = await Plotly.toImage(div, { format: 'png', width: 1280, height: 720 });
+    const a = document.createElement('a');
+    a.href = url;
+    const cfg = state.chartStudio || {};
+    const nm = (cfg.name || cfg.title || '차트').replace(/[^\w가-힣]+/g, '_').slice(0, 40);
+    a.download = `${nm}_${new Date().toISOString().slice(0,10)}.png`;
+    a.click();
+    toast('PNG 저장 완료', a.download, 'success');
+  } catch (e) {
+    toast('PNG 저장 실패', e.message, 'danger');
+  }
+}
+
+/* ============================================================
+   Chart Library — manage saved charts (list/view/edit/delete/include)
+   ============================================================ */
+function openChartLibrary() {
+  if (!state.customCharts) state.customCharts = loadCustomCharts();
+  renderChartLibrary();
+  document.getElementById('chartLibraryModal').classList.add('show');
+}
+function closeChartLibrary() {
+  document.getElementById('chartLibraryModal').classList.remove('show');
+}
+function renderChartLibrary() {
+  const body = document.getElementById('chartLibraryBody');
+  if (!body) return;
+  const charts = state.customCharts || [];
+  if (!charts.length) {
+    body.innerHTML = `<div class="drilldown-empty" style="padding:32px;border:1px dashed var(--border);border-radius:var(--radius)">
+      저장된 차트가 없습니다. <strong>+ 새 차트 만들기</strong>를 눌러 16종 차트 중 원하는 형태를 만들 수 있습니다.</div>`;
+    return;
+  }
+  body.innerHTML = charts.map((c) => {
+    const typeLabel = (CHART_TYPES.find(t => t.key === c.config?.type) || { label: c.config?.type }).label;
+    return `
+      <div class="chart-library-card">
+        <div class="chart-library-thumb">
+          ${c.thumb ? `<img src="${c.thumb}" alt="thumbnail">` : '<span class="chart-library-thumb-fallback">📊</span>'}
+        </div>
+        <div class="chart-library-info">
+          <div class="name">${escapeHtml(c.name)}</div>
+          ${c.desc ? `<div class="desc">${escapeHtml(c.desc)}</div>` : ''}
+          <div class="meta">
+            <span>${escapeHtml(typeLabel)}</span>
+            <span>·</span>
+            <span>${new Date(c.createdAt).toLocaleDateString()}</span>
+          </div>
+        </div>
+        <div class="chart-library-actions">
+          <label class="${c.includeInReport ? 'report-on' : ''}">
+            <input type="checkbox" ${c.includeInReport ? 'checked' : ''} onchange="toggleChartReport('${c.id}', this.checked)">
+            보고서 포함
+          </label>
+          <button onclick="onChartViewClick('${c.id}')">🔍 보기</button>
+          <button onclick="onChartEditClick('${c.id}')">편집</button>
+          <button class="danger" onclick="onChartDeleteClick('${c.id}')">삭제</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+function toggleChartReport(id, on) {
+  const c = (state.customCharts || []).find(x => x.id === id);
+  if (!c) return;
+  c.includeInReport = !!on;
+  saveCustomCharts();
+  renderChartLibrary();
+}
+function onChartViewClick(id) {
+  const c = (state.customCharts || []).find(x => x.id === id);
+  if (!c) return;
+  closeChartLibrary();
+  openChartStudio(c.config);
+}
+function onChartEditClick(id) { onChartViewClick(id); }
+function onChartDeleteClick(id) {
+  const c = (state.customCharts || []).find(x => x.id === id);
+  if (!c) return;
+  if (!confirm(`차트 "${c.name}" 을(를) 삭제할까요?`)) return;
+  state.customCharts = (state.customCharts || []).filter(x => x.id !== id);
+  saveCustomCharts();
+  renderChartLibrary();
+  try { renderSidebar(); } catch (e) {}
+  toast('삭제됨', c.name, 'success');
+}
+
+/* Render saved charts to PNG dataURLs for embedding in PPT/Excel.
+   Uses an off-screen container to avoid DOM disruption. */
+async function renderCustomChartsToImages(width, height) {
+  const charts = (state.customCharts || []).filter(c => c.includeInReport);
+  if (!charts.length) return [];
+  width = width || 1280; height = height || 720;
+  const tmp = document.createElement('div');
+  tmp.style.cssText = 'position:fixed;left:-9999px;top:0;width:' + width + 'px;height:' + height + 'px;';
+  document.body.appendChild(tmp);
+  const out = [];
+  try {
+    for (const c of charts) {
+      try {
+        const records = (c.config.scope === 'all') ? (state.parsedData || []) : getFilteredData();
+        const { data, layout } = buildPlotlyChart(c.config, records);
+        await Plotly.newPlot(tmp, data, layout, { staticPlot: true });
+        const url = await Plotly.toImage(tmp, { format: 'png', width, height });
+        out.push({ chart: c, dataUrl: url });
+      } catch (e) {
+        console.warn('custom chart render failed:', c.name, e);
+      } finally {
+        try { Plotly.purge(tmp); } catch (e) {}
+      }
+    }
+  } finally {
+    tmp.remove();
+  }
+  return out;
 }
 
 /* ============================================================
@@ -4525,6 +6227,939 @@ const COL_BLACKLIST = {
 
 function normalizeKey(k) {
   return String(k).replace(/\s+/g, '').toLowerCase();
+}
+
+/* ============================================================
+   SMART COLUMN PROFILING (data-driven, no API)
+   - profileColumn: dtype/range/uniqueness/dist patterns from values
+   - inferColumnRole: combines header keywords + profile → role + confidence
+   - buildSheetSchema: per-sheet inferred schema with confidence map
+   - Role-based smart parsing supplements the keyword-only path
+   ============================================================ */
+
+// Numeric detection — handles strings like "85", "85.5", "85점", "1,234"
+function tryNum(v) {
+  if (v == null || v === '') return null;
+  if (typeof v === 'number') return isNaN(v) ? null : v;
+  const s = String(v).trim().replace(/,/g, '').replace(/[^\d\-.]/g, '');
+  if (!s) return null;
+  const n = Number(s);
+  return isNaN(n) ? null : n;
+}
+
+const MISSING_TOKENS = new Set(['', '-', '—', 'n/a', 'na', 'null', 'nan', '결시', '결석', '미응시', '미응시자', '0(결시)']);
+function isMissingToken(v) {
+  if (v == null) return true;
+  return MISSING_TOKENS.has(String(v).trim().toLowerCase());
+}
+
+function profileColumn(values) {
+  const total = values.length;
+  let nullCount = 0;
+  let numCount = 0;
+  let intCount = 0;
+  const uniqVals = new Map(); // value → count
+  const nums = [];
+
+  for (const v of values) {
+    if (isMissingToken(v)) { nullCount++; continue; }
+    const n = tryNum(v);
+    if (n !== null) {
+      numCount++;
+      if (Number.isInteger(n)) intCount++;
+      nums.push(n);
+    }
+    const key = String(v).trim();
+    uniqVals.set(key, (uniqVals.get(key) || 0) + 1);
+  }
+  const nonNull = total - nullCount;
+  const numericRatio = nonNull > 0 ? numCount / nonNull : 0;
+  const intRatio = numCount > 0 ? intCount / numCount : 0;
+
+  let min = null, max = null, mean = null, median = null, sd = null;
+  if (nums.length > 0) {
+    min = Math.min(...nums); max = Math.max(...nums);
+    mean = nums.reduce((s, x) => s + x, 0) / nums.length;
+    const sorted = [...nums].sort((a, b) => a - b);
+    median = sorted.length % 2 ? sorted[Math.floor(sorted.length/2)] : (sorted[sorted.length/2 - 1] + sorted[sorted.length/2]) / 2;
+    if (nums.length >= 2) {
+      const v = nums.reduce((s, x) => s + (x - mean) ** 2, 0) / (nums.length - 1);
+      sd = Math.sqrt(v);
+    }
+  }
+
+  // Top 5 most common values (for categorical detection)
+  const top5 = [...uniqVals.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
+  const uniqueCount = uniqVals.size;
+  const uniquenessRatio = nonNull > 0 ? uniqueCount / nonNull : 0;
+
+  // Detect monotonic increment (row index column)
+  let isMonotonic = false;
+  if (nums.length === total - nullCount && nums.length >= 5) {
+    isMonotonic = nums.every((v, i) => i === 0 || v === nums[i - 1] + 1);
+  }
+
+  // Dominant data type
+  let dtype = 'unknown';
+  if (numericRatio >= 0.9) dtype = intRatio >= 0.9 ? 'integer' : 'float';
+  else if (numericRatio < 0.1) dtype = 'string';
+  else dtype = 'mixed';
+
+  return {
+    total, nonNull, nullCount, nullRatio: total > 0 ? nullCount / total : 0,
+    numericRatio, intRatio, dtype,
+    uniqueCount, uniquenessRatio, top5,
+    min, max, mean, median, sd, isMonotonic,
+  };
+}
+
+// All possible roles in our data model
+const COLUMN_ROLES = [
+  { key: 'studentId',    label: '학생ID(학번)', synonyms: ['학번', '수험번호', '학생번호', '학번', 'id', 'studentid'] },
+  { key: 'studentName',  label: '이름',          synonyms: ['이름', '성명', '학생이름', '학생명', 'name'] },
+  { key: 'classNumber',  label: '번호',          synonyms: ['번호', 'no', 'num'] },
+  { key: 'className',    label: '반',            synonyms: ['반', '학급', '분반', 'class'] },
+  { key: 'grade',        label: '학년',          synonyms: ['학년'] },
+  { key: 'gender',       label: '성별',          synonyms: ['성별', 'gender', '남녀'] },
+  { key: 'track',        label: '계열',          synonyms: ['계열', '과정', '문이과', '문과이과'] },
+  { key: 'year',         label: '학년도/연도',   synonyms: ['년도', '연도', 'year', '학년도'] },
+  { key: 'session',      label: '회차(모의)',    synonyms: ['회차', '차수', '시행월', '시험월', '시험회차'] },
+  { key: 'term',         label: '학기(내신)',    synonyms: ['학기', '학년학기', '학년/학기'] },
+  { key: 'subject',      label: '과목',          synonyms: ['과목', '교과', '과목명'] },
+  { key: 'rawScore',     label: '원점수',        synonyms: ['원점수', '득점', '점수', 'score'] },
+  { key: 'standardScore',label: '표준점수',      synonyms: ['표준점수', '표점', '표준'] },
+  { key: 'percentile',   label: '백분위',        synonyms: ['백분위', 'percentile'] },
+  { key: 'grade9',       label: '등급(9등급)',   synonyms: ['석차등급', '등급', 'grade'] },
+  { key: 'units',        label: '단위수',        synonyms: ['이수단위', '단위수', '단위'] },
+  { key: 'subjectAvg',   label: '과목평균',      synonyms: ['과목평균', '평균', 'avg'] },
+  { key: 'subjectStdDev',label: '표준편차',      synonyms: ['표준편차', 'stddev', 'sd'] },
+  { key: 'achievement',  label: '성취도',        synonyms: ['성취도', '성취'] },
+  { key: 'cohort',       label: '기수',          synonyms: ['기수', '기'] },
+  { key: 'school',       label: '출신중학교',    synonyms: ['중학교', '출신중', '졸업중'] },
+  { key: 'admissionType',label: '전형구분',      synonyms: ['전형', '전형구분', '전형명'] },
+  { key: 'ignore',       label: '(분석 제외)',   synonyms: [] },
+];
+const COLUMN_ROLE_MAP = Object.fromEntries(COLUMN_ROLES.map(r => [r.key, r]));
+
+// Numeric range fingerprints — used to corroborate header guesses
+const ROLE_NUMERIC_PROFILE = {
+  rawScore:     { min: 0,   max: 100, intHint: true,  mustBeInteger: false },
+  standardScore:{ min: 0,   max: 200, intHint: true,  mustBeInteger: false },
+  percentile:   { min: 0,   max: 100, intHint: false, mustBeInteger: false },
+  grade9:       { min: 1,   max: 9,   intHint: true,  mustBeInteger: true },
+  units:        { min: 1,   max: 8,   intHint: true,  mustBeInteger: true },
+  grade:        { min: 1,   max: 6,   intHint: true,  mustBeInteger: true },
+  classNumber:  { min: 1,   max: 50,  intHint: true,  mustBeInteger: true },
+  subjectAvg:   { min: 0,   max: 100, intHint: false, mustBeInteger: false },
+  subjectStdDev:{ min: 0,   max: 50,  intHint: false, mustBeInteger: false },
+  cohort:       { min: 1,   max: 30,  intHint: true,  mustBeInteger: true },
+};
+
+// Score header signal — if header contains keyword
+function headerScore(headerNorm, role) {
+  const meta = COLUMN_ROLE_MAP[role];
+  if (!meta || !meta.synonyms.length) return 0;
+  const exact = meta.synonyms.find(s => headerNorm === s.toLowerCase());
+  if (exact) return 1.0;
+  const partial = meta.synonyms.find(s => headerNorm.includes(s.toLowerCase()));
+  if (partial) return 0.7;
+  return 0;
+}
+
+// Profile-based score for numeric roles
+function profileScore(profile, role) {
+  const expect = ROLE_NUMERIC_PROFILE[role];
+  if (!expect) return 0.5; // no constraint
+  if (profile.numericRatio < 0.7) return 0;
+  if (profile.min == null || profile.max == null) return 0;
+  // Range check
+  if (profile.min < expect.min - 0.5 || profile.max > expect.max + 0.5) return 0.1;
+  if (expect.mustBeInteger && profile.intRatio < 0.95) return 0.2;
+  if (expect.intHint && profile.intRatio >= 0.9) return 0.95;
+  return 0.85;
+}
+
+// Categorical patterns
+function detectCategoricalRole(profile, headerNorm, top5Strings) {
+  // Gender
+  const top5Set = new Set(top5Strings.map(s => s.toLowerCase()));
+  if (profile.uniqueCount <= 4 && (top5Set.has('남') || top5Set.has('여') || top5Set.has('m') || top5Set.has('f'))) {
+    return { role: 'gender', confidence: 0.95 };
+  }
+  // Track
+  if (profile.uniqueCount <= 4 && (top5Set.has('문과') || top5Set.has('이과') || top5Set.has('혼합') || top5Set.has('lit') || top5Set.has('sci'))) {
+    return { role: 'track', confidence: 0.95 };
+  }
+  // Subject (Korean education subjects)
+  if (profile.uniqueCount >= 2 && profile.uniqueCount <= 30) {
+    const subjectMatches = top5Strings.filter(s => KNOWN_SUBJECTS.some(ks => ks === s.replace(/\s+/g, '')));
+    if (subjectMatches.length >= 2) return { role: 'subject', confidence: 0.95 };
+    if (headerNorm.includes('과목') || headerNorm.includes('교과')) return { role: 'subject', confidence: 0.85 };
+  }
+  // Achievement (A/B/C/D/E)
+  if (profile.uniqueCount <= 6 && top5Strings.every(s => /^[A-E]$/.test(s.trim()))) {
+    return { role: 'achievement', confidence: 0.95 };
+  }
+  return null;
+}
+
+// Main inference — combine header signal and data profile
+function inferColumnRole(header, profile) {
+  const headerNorm = String(header || '').trim().toLowerCase().replace(/\s+/g, '');
+  const top5Strings = profile.top5.map(([k]) => k);
+
+  // 1. Strong categorical signals
+  const cat = detectCategoricalRole(profile, headerNorm, top5Strings);
+  if (cat) return cat;
+
+  // 2. Identifier (very high uniqueness)
+  if (profile.uniquenessRatio >= 0.95 && profile.nonNull >= 5) {
+    if (headerNorm.includes('학번') || headerNorm.includes('번호') || headerNorm.includes('id') || headerNorm.includes('수험')) {
+      return { role: 'studentId', confidence: 0.95 };
+    }
+    if (headerNorm.includes('이름') || headerNorm.includes('성명') || headerNorm.includes('name')) {
+      return { role: 'studentName', confidence: 0.95 };
+    }
+    if (profile.dtype === 'string') return { role: 'studentName', confidence: 0.6 };
+  }
+
+  // 3. Row-index detection (skip)
+  if (profile.isMonotonic && headerNorm.length <= 3) {
+    return { role: 'ignore', confidence: 0.85 };
+  }
+
+  // 4. Numeric role inference — header + profile both vote
+  const candidates = ['rawScore', 'standardScore', 'percentile', 'grade9', 'units', 'subjectAvg', 'subjectStdDev', 'grade', 'cohort', 'classNumber'];
+  let best = { role: 'unknown', confidence: 0 };
+  for (const role of candidates) {
+    const hScore = headerScore(headerNorm, role);
+    const pScore = profileScore(profile, role);
+    // Combine — header is more authoritative when matched
+    const combined = hScore > 0 && pScore > 0 ? Math.min(0.98, 0.5 * hScore + 0.5 * pScore + 0.15) : Math.max(hScore * 0.5, pScore * 0.5);
+    if (combined > best.confidence) best = { role, confidence: combined };
+  }
+  if (best.confidence >= 0.5) return best;
+
+  // 5. Fallback string-based (year, session, term, className)
+  if (headerNorm.includes('년도') || headerNorm.includes('학년도')) return { role: 'year', confidence: 0.85 };
+  if (headerNorm.includes('회차') || headerNorm.includes('차수') || /^\d+회|^[1-9]월$/.test(headerNorm)) return { role: 'session', confidence: 0.8 };
+  if (headerNorm.includes('학기')) return { role: 'term', confidence: 0.85 };
+  if (headerNorm.includes('반') && profile.uniqueCount <= 30) return { role: 'className', confidence: 0.8 };
+  if (headerNorm.includes('학년')) return { role: 'grade', confidence: 0.85 };
+  if (headerNorm.includes('계열')) return { role: 'track', confidence: 0.9 };
+  if (headerNorm.includes('성별')) return { role: 'gender', confidence: 0.9 };
+
+  return { role: 'unknown', confidence: 0 };
+}
+
+// Build a per-column schema for a sheet/rows — used by smart mapping flow
+function buildSheetSchema(rows) {
+  if (!rows || rows.length === 0) return { columns: [], schema: {}, fingerprint: '' };
+  const headers = Object.keys(rows[0]);
+  const columns = headers.map(h => {
+    const values = rows.map(r => r[h]);
+    const profile = profileColumn(values);
+    const inference = inferColumnRole(h, profile);
+    return { header: h, profile, role: inference.role, confidence: inference.confidence, override: false };
+  });
+  // Resolve duplicates — if two columns claim same role, keep highest confidence, demote others
+  const byRole = {};
+  columns.forEach(c => {
+    if (c.role === 'unknown' || c.role === 'ignore') return;
+    if (!byRole[c.role] || byRole[c.role].confidence < c.confidence) {
+      if (byRole[c.role]) byRole[c.role]._demoted = true;
+      byRole[c.role] = c;
+    } else {
+      c._demoted = true;
+    }
+  });
+  columns.forEach(c => {
+    if (c._demoted) {
+      // For numeric duplicates that both look like score, demote loser to "ignore"
+      if (c.role === 'rawScore') c.role = 'standardScore';   // common: two score columns
+      else if (c.role === 'standardScore') c.role = 'percentile';
+      else c.role = 'unknown';
+      c.confidence = Math.max(0, c.confidence - 0.2);
+      delete c._demoted;
+    }
+  });
+
+  // Detect Wide subject columns separately — independent of role inference
+  const wideSubjects = detectWideSubjectColumns(rows[0]);
+
+  // Schema fingerprint — header signature for save/restore
+  const fingerprint = headers.join('|').slice(0, 200);
+
+  return {
+    columns,
+    headers,
+    wideSubjects,
+    fingerprint,
+    rowCount: rows.length,
+    overall: {
+      hasIdentifier: columns.some(c => c.role === 'studentId' || c.role === 'studentName'),
+      hasScore: columns.some(c => ['rawScore','standardScore','percentile'].includes(c.role)),
+      hasGrade: columns.some(c => c.role === 'grade9'),
+      hasSubject: columns.some(c => c.role === 'subject') || wideSubjects.length > 0,
+      isWide: wideSubjects.length >= 2,
+      isLong: columns.some(c => c.role === 'subject'),
+      lowConfCount: columns.filter(c => c.confidence < 0.7 && c.role !== 'unknown' && c.role !== 'ignore').length,
+    },
+  };
+}
+
+/* Outlier detection — univariate IQR (1.5 × IQR fences) and multivariate Mahalanobis */
+function detectOutliers(values, method) {
+  const v = values.filter(x => typeof x === 'number' && !isNaN(x));
+  if (v.length < 4) return [];
+  if (method === 'zscore') {
+    const m = stats.mean(v); const sd = stats.stdDev(v);
+    if (!sd) return [];
+    return v.map((x, i) => Math.abs((x - m) / sd) > 3 ? i : -1).filter(i => i >= 0);
+  }
+  // Default: IQR
+  const q = stats.quartiles(v);
+  if (q.q1 == null) return [];
+  const iqr = q.q3 - q.q1;
+  const lo = q.q1 - 1.5 * iqr, hi = q.q3 + 1.5 * iqr;
+  return v.map((x, i) => (x < lo || x > hi) ? i : -1).filter(i => i >= 0);
+}
+
+/* Mahalanobis distance for multivariate outlier detection across (raw, percentile, grade9) */
+function mahalanobisDist2(point, mean, invCov) {
+  const d = point.map((x, i) => x - mean[i]);
+  let s = 0;
+  for (let i = 0; i < d.length; i++) {
+    for (let j = 0; j < d.length; j++) {
+      s += d[i] * invCov[i][j] * d[j];
+    }
+  }
+  return s;
+}
+
+/* ============================================================
+   STATISTICAL RIGOR — p-values, CI, post-hoc, effect sizes
+   Closed-form approximations (no API needed)
+   ============================================================ */
+const StatTests = {
+  // Standard normal CDF (Abramowitz & Stegun 7.1.26)
+  pnorm(z) {
+    const sign = z < 0 ? -1 : 1;
+    z = Math.abs(z) / Math.sqrt(2);
+    const t = 1 / (1 + 0.3275911 * z);
+    const y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-z * z);
+    return 0.5 * (1 + sign * y);
+  },
+  // Two-tailed p-value from z-score
+  pZTwo(z) { return 2 * (1 - StatTests.pnorm(Math.abs(z))); },
+  // Two-tailed p from t-statistic — Welch's t-distribution approx (uses normal for df>=30, otherwise small-sample correction)
+  pTTwo(t, df) {
+    if (!isFinite(t) || !isFinite(df) || df <= 0) return null;
+    // Hill's approximation for t-distribution two-tailed p
+    const x = df / (df + t * t);
+    const a = df / 2; const b = 0.5;
+    return StatTests.incBeta(x, a, b);
+  },
+  // Regularized incomplete beta function I_x(a,b) — for t/F p-values
+  // Implementation using continued fraction (Press et al., Numerical Recipes §6.4)
+  incBeta(x, a, b) {
+    if (x <= 0) return 0;
+    if (x >= 1) return 1;
+    const lnBeta = StatTests.lnGamma(a) + StatTests.lnGamma(b) - StatTests.lnGamma(a + b);
+    const front = Math.exp(Math.log(x) * a + Math.log(1 - x) * b - lnBeta) / a;
+    if (x < (a + 1) / (a + b + 2)) {
+      return front * StatTests.betaCF(x, a, b);
+    } else {
+      return 1 - front * StatTests.betaCF(1 - x, b, a) * (1 - x) / x;
+    }
+  },
+  betaCF(x, a, b) {
+    const MAX_ITER = 200;
+    const EPS = 3e-7;
+    const qab = a + b, qap = a + 1, qam = a - 1;
+    let c = 1, d = 1 - qab * x / qap;
+    if (Math.abs(d) < 1e-30) d = 1e-30;
+    d = 1 / d;
+    let h = d;
+    for (let m = 1; m <= MAX_ITER; m++) {
+      const m2 = 2 * m;
+      let aa = m * (b - m) * x / ((qam + m2) * (a + m2));
+      d = 1 + aa * d;
+      if (Math.abs(d) < 1e-30) d = 1e-30;
+      c = 1 + aa / c;
+      if (Math.abs(c) < 1e-30) c = 1e-30;
+      d = 1 / d;
+      h *= d * c;
+      aa = -(a + m) * (qab + m) * x / ((a + m2) * (qap + m2));
+      d = 1 + aa * d;
+      if (Math.abs(d) < 1e-30) d = 1e-30;
+      c = 1 + aa / c;
+      if (Math.abs(c) < 1e-30) c = 1e-30;
+      d = 1 / d;
+      const del = d * c;
+      h *= del;
+      if (Math.abs(del - 1) < EPS) break;
+    }
+    return h;
+  },
+  // Lanczos approximation of ln(Gamma(x))
+  lnGamma(x) {
+    const c = [676.5203681218851, -1259.1392167224028, 771.32342877765313,
+               -176.61502916214059, 12.507343278686905, -0.13857109526572012,
+               9.9843695780195716e-6, 1.5056327351493116e-7];
+    if (x < 0.5) return Math.log(Math.PI / Math.sin(Math.PI * x)) - StatTests.lnGamma(1 - x);
+    x -= 1;
+    let a = 0.99999999999980993;
+    for (let i = 0; i < c.length; i++) a += c[i] / (x + i + 1);
+    const t = x + c.length - 0.5;
+    return 0.5 * Math.log(2 * Math.PI) + (x + 0.5) * Math.log(t) - t + Math.log(a);
+  },
+  // F-distribution two-tailed (one-tailed for ANOVA — F is always upper tail)
+  pFOne(F, df1, df2) {
+    if (!isFinite(F) || !isFinite(df1) || !isFinite(df2) || df1 <= 0 || df2 <= 0) return null;
+    if (F <= 0) return 1;
+    const x = df2 / (df2 + df1 * F);
+    return StatTests.incBeta(x, df2 / 2, df1 / 2);
+  },
+  // Pearson r p-value (test against null H0: r=0): t = r * sqrt((n-2)/(1-r²))
+  pPearson(r, n) {
+    if (n < 3 || Math.abs(r) >= 1) return Math.abs(r) >= 1 ? 0 : 1;
+    const t = r * Math.sqrt((n - 2) / (1 - r * r));
+    return StatTests.pTTwo(t, n - 2);
+  },
+  // 95% CI for mean via t-distribution
+  meanCI(values, level) {
+    level = level || 0.95;
+    const v = values.filter(x => typeof x === 'number' && !isNaN(x));
+    if (v.length < 2) return null;
+    const m = stats.mean(v); const sd = stats.stdDev(v);
+    const se = sd / Math.sqrt(v.length);
+    // For df>=30 use z, otherwise t-approx (use 2.0 as conservative)
+    const tCrit = v.length >= 30 ? 1.96 : 2.045; // t(df=29, 0.025)
+    return { mean: m, low: m - tCrit * se, high: m + tCrit * se, sd, se, n: v.length };
+  },
+  // Cohen's d (effect size between two groups)
+  cohensD(a, b) {
+    const A = a.filter(x => typeof x === 'number' && !isNaN(x));
+    const B = b.filter(x => typeof x === 'number' && !isNaN(x));
+    if (A.length < 2 || B.length < 2) return null;
+    const ma = stats.mean(A), mb = stats.mean(B);
+    const sa = stats.stdDev(A), sb = stats.stdDev(B);
+    const pooled = Math.sqrt(((A.length - 1) * sa * sa + (B.length - 1) * sb * sb) / (A.length + B.length - 2));
+    if (!pooled) return null;
+    return (ma - mb) / pooled;
+  },
+  // Welch's t-test (unequal variances) — returns t, df, p
+  welchT(a, b) {
+    const A = a.filter(x => typeof x === 'number' && !isNaN(x));
+    const B = b.filter(x => typeof x === 'number' && !isNaN(x));
+    if (A.length < 2 || B.length < 2) return null;
+    const ma = stats.mean(A), mb = stats.mean(B);
+    const va = stats.variance(A), vb = stats.variance(B);
+    if (va == null || vb == null) return null;
+    const seSq = va / A.length + vb / B.length;
+    if (seSq <= 0) return null;
+    const t = (ma - mb) / Math.sqrt(seSq);
+    const num = seSq * seSq;
+    const den = (va * va) / (A.length * A.length * (A.length - 1)) + (vb * vb) / (B.length * B.length * (B.length - 1));
+    const df = num / den;
+    return { t, df, p: StatTests.pTTwo(t, df), meanA: ma, meanB: mb, dA: StatTests.cohensD(A, B) };
+  },
+  // Tukey HSD post-hoc: pairwise comparisons after ANOVA
+  // Returns array of {a, b, meanDiff, q, p} — q stat is approximated
+  tukeyHSD(groups) {
+    // groups: { name → values[] }
+    const names = Object.keys(groups);
+    if (names.length < 2) return [];
+    const k = names.length;
+    let N = 0; let ssWithin = 0;
+    const stats_ = {};
+    names.forEach(n => {
+      const vals = groups[n].filter(x => typeof x === 'number' && !isNaN(x));
+      const m = stats.mean(vals);
+      vals.forEach(x => ssWithin += (x - m) * (x - m));
+      stats_[n] = { mean: m, n: vals.length };
+      N += vals.length;
+    });
+    const dfWithin = N - k;
+    if (dfWithin <= 0) return [];
+    const msWithin = ssWithin / dfWithin;
+    if (msWithin <= 0) return [];
+    const results = [];
+    for (let i = 0; i < k; i++) {
+      for (let j = i + 1; j < k; j++) {
+        const a = stats_[names[i]], b = stats_[names[j]];
+        const se = Math.sqrt(msWithin * (1/a.n + 1/b.n) / 2);
+        const q = se > 0 ? Math.abs(a.mean - b.mean) / se : 0;
+        // Tukey p approximation via studentized range — use Bonferroni-corrected t-test as conservative substitute
+        const tEquiv = q / Math.sqrt(2);
+        const pRaw = StatTests.pTTwo(tEquiv, dfWithin);
+        const numComparisons = k * (k - 1) / 2;
+        const pAdj = pRaw == null ? null : Math.min(1, pRaw * numComparisons);
+        results.push({ a: names[i], b: names[j], meanDiff: a.mean - b.mean, q, p: pAdj });
+      }
+    }
+    return results;
+  },
+};
+
+/* Format p-value for display */
+function fmtP(p) {
+  if (p == null || isNaN(p)) return '-';
+  if (p < 0.001) return 'p < 0.001 ***';
+  if (p < 0.01) return `p = ${p.toFixed(3)} **`;
+  if (p < 0.05) return `p = ${p.toFixed(3)} *`;
+  return `p = ${p.toFixed(3)}`;
+}
+
+/* ============================================================
+   SMART MAPPING — modal flow, fingerprint persistence
+   ============================================================ */
+const MAPPING_TEMPLATES_KEY = 'grade-analyzer-mappings-v1';
+
+let pendingMapping = null; // { rows, schema, fingerprint, fileName, examType, year, session, onApply }
+
+function loadMappingTemplates() {
+  try {
+    const raw = localStorage.getItem(MAPPING_TEMPLATES_KEY);
+    if (!raw) return [];
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr) ? arr : [];
+  } catch (e) { return []; }
+}
+function saveMappingTemplates(arr) {
+  try { localStorage.setItem(MAPPING_TEMPLATES_KEY, JSON.stringify(arr)); }
+  catch (e) { console.error('saveMappingTemplates failed', e); }
+}
+function findMappingTemplate(fingerprint) {
+  return loadMappingTemplates().find(t => t.fingerprint === fingerprint) || null;
+}
+
+/* Apply a saved template to a freshly-built schema (override roles) */
+function applyMappingTemplate(schema, template) {
+  if (!template || !template.roles) return schema;
+  schema.columns.forEach(c => {
+    const saved = template.roles[c.header];
+    if (saved) { c.role = saved; c.confidence = 1.0; c.override = true; }
+  });
+  return schema;
+}
+
+function openSmartMapping(args) {
+  // args: { rows, fingerprint, fileName, examType, year, session, onApply }
+  if (!args || !args.rows) return;
+  const schema = buildSheetSchema(args.rows);
+  // Auto-apply any saved template silently before showing
+  const tmpl = findMappingTemplate(schema.fingerprint);
+  if (tmpl) applyMappingTemplate(schema, tmpl);
+  pendingMapping = Object.assign({}, args, { schema, fingerprint: schema.fingerprint });
+  renderSmartMapping();
+  document.getElementById('smartMappingModal').classList.add('show');
+}
+function closeSmartMapping() {
+  document.getElementById('smartMappingModal').classList.remove('show');
+}
+
+function renderSmartMapping() {
+  if (!pendingMapping) return;
+  const { schema, fileName } = pendingMapping;
+  const meta = document.getElementById('smartMappingMeta');
+  if (meta) {
+    const issues = schema.overall.lowConfCount;
+    meta.innerHTML = `<strong>${escapeHtml(fileName || '업로드 파일')}</strong> · ${schema.rowCount.toLocaleString()}행 · ${schema.columns.length}컬럼` +
+      (issues > 0 ? ` <span class="mapping-issue">⚠ 신뢰도 낮은 컬럼 ${issues}개 — 확인 필요</span>` : '');
+  }
+
+  const body = document.getElementById('smartMappingBody');
+  if (!body) return;
+
+  const overallSummary = `
+    <div class="dq-grid" style="margin-bottom:14px">
+      <div class="dq-card${!schema.overall.hasIdentifier ? ' alert' : ''}">
+        <div class="dq-label">학생 식별</div>
+        <div class="dq-value">${schema.overall.hasIdentifier ? '✓ 인식' : '✗ 없음'}</div>
+        <div class="dq-detail">학번/이름 컬럼</div>
+      </div>
+      <div class="dq-card${!schema.overall.hasScore ? ' alert' : ''}">
+        <div class="dq-label">점수 컬럼</div>
+        <div class="dq-value">${schema.overall.hasScore ? '✓ 인식' : '✗ 없음'}</div>
+        <div class="dq-detail">원점수/표점/백분위 중 1개 이상</div>
+      </div>
+      <div class="dq-card${!schema.overall.hasSubject ? ' alert' : ''}">
+        <div class="dq-label">과목 구분</div>
+        <div class="dq-value">${schema.overall.isWide ? `✓ Wide (${schema.wideSubjects.length}과목)` : (schema.overall.isLong ? '✓ Long' : '✗ 없음')}</div>
+        <div class="dq-detail">${schema.overall.isWide ? schema.wideSubjects.map(w => w.subject).join(' / ').slice(0, 80) : '과목명 컬럼'}</div>
+      </div>
+      <div class="dq-card${schema.overall.lowConfCount > 0 ? ' alert' : ''}">
+        <div class="dq-label">매핑 신뢰도</div>
+        <div class="dq-value">${schema.overall.lowConfCount === 0 ? '✓ 양호' : `⚠ ${schema.overall.lowConfCount}개`}</div>
+        <div class="dq-detail">< 70% 신뢰도 컬럼</div>
+      </div>
+    </div>`;
+
+  const roleOptions = COLUMN_ROLES.map(r =>
+    `<option value="${r.key}">${r.label}</option>`).join('');
+
+  const tableRows = schema.columns.map((c, idx) => {
+    const sample = c.profile.top5.slice(0, 3).map(([v]) => v).join(', ').slice(0, 60) || '(빈 값)';
+    let confLevel = 'high'; if (c.confidence < 0.5) confLevel = 'low'; else if (c.confidence < 0.75) confLevel = 'mid';
+    const confPct = Math.round(c.confidence * 100);
+    const stats = [
+      c.profile.dtype === 'integer' || c.profile.dtype === 'float' ? `${c.profile.dtype === 'integer' ? '정수' : '실수'} ${c.profile.min?.toFixed?.(1) ?? ''}~${c.profile.max?.toFixed?.(1) ?? ''}` : c.profile.dtype === 'string' ? '문자' : '혼합',
+      `유니크 ${c.profile.uniqueCount}`,
+      c.profile.nullRatio > 0.05 ? `결측 ${(c.profile.nullRatio * 100).toFixed(0)}%` : '',
+    ].filter(Boolean).join(' · ');
+    const lowConfClass = (c.confidence < 0.7 && c.role !== 'unknown' && c.role !== 'ignore') ? 'low-conf' : '';
+    return `
+      <tr class="${lowConfClass}">
+        <td>
+          <div class="mapping-header-cell" title="${escapeHtml(c.header)}">${escapeHtml(c.header)}</div>
+          <div class="mapping-stats">${escapeHtml(stats)}</div>
+        </td>
+        <td>
+          <div class="mapping-sample" title="${escapeHtml(sample)}">${escapeHtml(sample)}</div>
+        </td>
+        <td>
+          <select class="mapping-role-select" data-idx="${idx}" onchange="onMappingRoleChange(${idx}, this.value)">
+            ${COLUMN_ROLES.map(r => `<option value="${r.key}" ${r.key === c.role ? 'selected' : ''}>${r.label}</option>`).join('')}
+            ${c.role === 'unknown' ? `<option value="unknown" selected>모름</option>` : ''}
+          </select>
+        </td>
+        <td>
+          <span class="mapping-conf">
+            <span class="mapping-conf-bar"><span class="mapping-conf-fill mapping-conf-${confLevel}" style="width:${confPct}%"></span></span>
+            ${confPct}%
+          </span>
+        </td>
+      </tr>`;
+  }).join('');
+
+  body.innerHTML = `
+    ${overallSummary}
+    <div style="font-size:11.5px;color:var(--text-muted);margin-bottom:8px;line-height:1.5">
+      💡 헤더 이름 + 실제 데이터를 통계적으로 분석한 결과입니다. 신뢰도 70% 미만은 노란 행으로 표시되며,
+      드롭다운으로 즉시 변경 가능합니다. <strong>양식 저장</strong>을 누르면 이 매핑이 헤더 지문(${escapeHtml(schema.fingerprint.slice(0, 40))}...)에 저장되어 같은 양식 재업로드 시 자동 적용됩니다.
+    </div>
+    <table class="mapping-table">
+      <thead><tr><th style="width:30%">컬럼명 / 통계</th><th style="width:25%">샘플 값</th><th style="width:25%">역할</th><th style="width:20%">신뢰도</th></tr></thead>
+      <tbody>${tableRows}</tbody>
+    </table>`;
+
+  // DQ summary at the footer
+  const dqSummary = document.getElementById('smartMappingDqSummary');
+  if (dqSummary) {
+    const issues = [];
+    schema.columns.forEach(c => {
+      if (c.profile.nullRatio > 0.3) issues.push(`${c.header}: 결측률 ${(c.profile.nullRatio * 100).toFixed(0)}%`);
+      if (c.role === 'rawScore' && c.profile.max != null && c.profile.max > 100) issues.push(`${c.header}: 원점수가 100 초과 (${c.profile.max})`);
+    });
+    dqSummary.innerHTML = issues.length === 0
+      ? `<span style="color:var(--success-700)">✓ 데이터 품질 양호</span>`
+      : `<span style="color:var(--warning-600)">⚠ ${issues.length}개 항목 주의 — ${issues.slice(0, 2).join(', ')}${issues.length > 2 ? '...' : ''}</span>`;
+  }
+}
+
+function onMappingRoleChange(idx, value) {
+  if (!pendingMapping || !pendingMapping.schema) return;
+  const col = pendingMapping.schema.columns[idx];
+  if (!col) return;
+  col.role = value;
+  col.confidence = 1.0;
+  col.override = true;
+}
+
+function onMappingResetToAuto() {
+  if (!pendingMapping) return;
+  // Re-run auto-inference (drop overrides)
+  pendingMapping.schema = buildSheetSchema(pendingMapping.rows);
+  pendingMapping.fingerprint = pendingMapping.schema.fingerprint;
+  renderSmartMapping();
+  toast('자동 추론 재계산', '저장된 양식은 무시됩니다. "양식 저장"을 다시 눌러 갱신할 수 있습니다.', 'info');
+}
+
+function onMappingSaveAsTemplate() {
+  if (!pendingMapping) return;
+  const name = prompt('이 매핑을 저장할 양식 이름을 입력하세요 (예: 11기 RAW)', pendingMapping.fileName?.replace(/\.[^.]+$/, '') || '');
+  if (!name || !name.trim()) return;
+  const tmpls = loadMappingTemplates();
+  const roles = {};
+  pendingMapping.schema.columns.forEach(c => { if (c.role && c.role !== 'unknown') roles[c.header] = c.role; });
+  const tmpl = {
+    fingerprint: pendingMapping.fingerprint,
+    name: name.trim(),
+    roles,
+    headers: pendingMapping.schema.headers,
+    savedAt: new Date().toISOString(),
+  };
+  // Replace if same fingerprint exists
+  const idx = tmpls.findIndex(t => t.fingerprint === tmpl.fingerprint);
+  if (idx >= 0) tmpls[idx] = tmpl; else tmpls.push(tmpl);
+  saveMappingTemplates(tmpls);
+  toast('양식 저장 완료', `"${name.trim()}" — 같은 헤더로 재업로드 시 자동 적용됩니다`, 'success');
+}
+
+function onMappingApply() {
+  if (!pendingMapping) return;
+  closeSmartMapping();
+  if (typeof pendingMapping.onApply === 'function') {
+    try { pendingMapping.onApply(pendingMapping.schema); }
+    catch (e) { console.error('mapping apply', e); toast('매핑 적용 실패', e.message, 'danger'); }
+  }
+  pendingMapping = null;
+}
+
+/* Build a record from a row using the user-confirmed schema (replaces keyword-based normalizeRecord) */
+function normalizeRecordSchema(row, schema, context) {
+  const get = (role) => {
+    const col = schema.columns.find(c => c.role === role);
+    if (!col) return null;
+    return row[col.header];
+  };
+  const getNum = (role) => {
+    const v = get(role); return v == null || v === '' ? null : tryNum(v);
+  };
+  const getStr = (role) => {
+    const v = get(role); return v == null || v === '' ? null : String(v).trim();
+  };
+  return {
+    studentId:   getStr('studentId') || context.fallbackStudentId,
+    studentName: getStr('studentName'),
+    classNumber: getStr('classNumber'),
+    className:   getStr('className'),
+    grade:       getStr('grade'),
+    gender:      getStr('gender'),
+    track:       getStr('track'),
+    year:        getStr('year') || context.year,
+    session:     getStr('session') || getStr('term') || context.session,
+    examType:    context.examType,
+    subject:     getStr('subject'),
+    subjectGroup: getStr('subject'),
+    rawScore:    getNum('rawScore'),
+    standardScore: getNum('standardScore'),
+    percentile:  getNum('percentile'),
+    grade9:      getNum('grade9'),
+    units:       getNum('units'),
+    subjectAvg:  getNum('subjectAvg'),
+    subjectStdDev: getNum('subjectStdDev'),
+    achievement: getStr('achievement'),
+    cohort:      getStr('cohort') || context.cohort || null,
+  };
+}
+
+/* ============================================================
+   DATA QUALITY REPORT
+   ============================================================ */
+function runDataQuality() {
+  const data = state.parsedData || [];
+  if (!data.length) return null;
+  const total = data.length;
+  const studentIds = data.map(r => r.studentId).filter(Boolean);
+  const uniqStudents = new Set(studentIds).size;
+  const uniqSubjects = new Set(data.map(r => r.subject).filter(Boolean)).size;
+
+  // Missing rates by field
+  const fields = ['studentId','studentName','className','rawScore','standardScore','percentile','grade9','session','subject'];
+  const missing = {};
+  fields.forEach(f => {
+    const cnt = data.filter(r => r[f] == null || r[f] === '').length;
+    missing[f] = { count: cnt, ratio: cnt / total };
+  });
+
+  // Outliers by subject (raw score)
+  const outliersBySubject = {};
+  const subjects = [...new Set(data.map(r => r.subject).filter(Boolean))];
+  subjects.forEach(s => {
+    const vals = data.filter(r => r.subject === s).map(r => r.rawScore).filter(x => x != null);
+    const idxs = detectOutliers(vals, 'iqr');
+    if (idxs.length > 0) outliersBySubject[s] = idxs.length;
+  });
+
+  // Consistency violations
+  const inconsistencies = [];
+  // Score range check
+  data.forEach((r, i) => {
+    if (r.rawScore != null && (r.rawScore < 0 || r.rawScore > 100)) {
+      inconsistencies.push({ type: 'score_range', studentId: r.studentId, subject: r.subject, value: r.rawScore });
+    }
+    if (r.grade9 != null && (r.grade9 < 1 || r.grade9 > 9)) {
+      inconsistencies.push({ type: 'grade_range', studentId: r.studentId, subject: r.subject, value: r.grade9 });
+    }
+    if (r.percentile != null && (r.percentile < 0 || r.percentile > 100)) {
+      inconsistencies.push({ type: 'pct_range', studentId: r.studentId, subject: r.subject, value: r.percentile });
+    }
+  });
+
+  // Score↔grade consistency: high score with high (bad) grade or vice versa
+  data.forEach(r => {
+    if (r.rawScore != null && r.grade9 != null) {
+      if (r.rawScore >= 90 && r.grade9 >= 5) inconsistencies.push({ type: 'score_grade_mismatch', studentId: r.studentId, subject: r.subject, value: `${r.rawScore}점이 ${r.grade9}등급` });
+      if (r.rawScore <= 30 && r.grade9 <= 2) inconsistencies.push({ type: 'score_grade_mismatch', studentId: r.studentId, subject: r.subject, value: `${r.rawScore}점이 ${r.grade9}등급` });
+    }
+  });
+
+  return {
+    total, uniqStudents, uniqSubjects,
+    missing, outliersBySubject, inconsistencies,
+    issueCount: Object.values(missing).filter(m => m.ratio > 0.2).length
+              + Object.keys(outliersBySubject).length
+              + inconsistencies.length,
+  };
+}
+
+function openDataQuality() {
+  const report = runDataQuality();
+  if (!report) {
+    toast('데이터 없음', '먼저 파일을 업로드하세요', 'warning');
+    return;
+  }
+  renderDataQuality(report);
+  document.getElementById('dataQualityModal').classList.add('show');
+}
+function closeDataQuality() {
+  document.getElementById('dataQualityModal').classList.remove('show');
+}
+
+function openMappingTemplatesList() {
+  const tmpls = loadMappingTemplates();
+  if (!tmpls.length) {
+    toast('저장된 양식 없음', '파일을 업로드하고 매핑 모달에서 "양식 저장"을 눌러 추가하세요', 'info');
+    return;
+  }
+  const html = `
+    <div style="margin-bottom:12px;font-size:13px">
+      <strong>저장된 양식 ${tmpls.length}개</strong> — 동일한 헤더의 파일 재업로드 시 자동 적용
+    </div>
+    ${tmpls.map(t => `
+      <div class="group-card">
+        <div style="flex:1;min-width:0">
+          <div class="group-name">${escapeHtml(t.name)}</div>
+          <div class="group-meta">${Object.keys(t.roles || {}).length}개 역할 · ${(t.headers || []).length}개 헤더 · ${new Date(t.savedAt).toLocaleDateString()}</div>
+          <div style="font-size:10.5px;color:var(--text-subtle);font-family:var(--font-mono);margin-top:3px">FP: ${escapeHtml(t.fingerprint.slice(0, 60))}...</div>
+        </div>
+        <div class="group-actions">
+          <button class="danger" onclick="deleteMappingTemplate('${t.fingerprint.replace(/'/g, '\\\'')}')" title="삭제">삭제</button>
+        </div>
+      </div>
+    `).join('')}`;
+  openDrilldown('저장된 매핑 양식', []);
+  // Replace drilldown body content with template list (re-purposing modal)
+  setTimeout(() => {
+    const body = document.getElementById('drilldownBody');
+    if (body) body.innerHTML = `<div style="padding:14px 18px">${html}</div>`;
+    const meta = document.getElementById('drilldownMeta');
+    if (meta) meta.textContent = `${tmpls.length}개 양식`;
+  }, 30);
+}
+
+/* Reopen smart mapping for currently-parsed data — useful to verify or override mappings */
+function reopenSmartMapping() {
+  if (!state.parsedData || state.parsedData.length === 0) {
+    toast('데이터 없음', '먼저 파일을 업로드하고 분석하세요', 'warning');
+    return;
+  }
+  // Reconstruct an approximate row sample from parsed records (use first 200 records)
+  // Note: Records are normalized, so this lets the user verify the role assignments hold
+  const sampleSize = Math.min(200, state.parsedData.length);
+  const sample = state.parsedData.slice(0, sampleSize);
+  // Build pseudo-rows with original-like field names (use Korean labels)
+  const pseudoRows = sample.map(r => {
+    const row = {};
+    if (r.studentId != null) row['학번'] = r.studentId;
+    if (r.studentName != null) row['이름'] = r.studentName;
+    if (r.className != null) row['반'] = r.className;
+    if (r.classNumber != null) row['번호'] = r.classNumber;
+    if (r.year != null) row['학년도'] = r.year;
+    if (r.session != null) row['회차'] = r.session;
+    if (r.subject != null) row['과목'] = r.subject;
+    if (r.rawScore != null) row['원점수'] = r.rawScore;
+    if (r.standardScore != null) row['표준점수'] = r.standardScore;
+    if (r.percentile != null) row['백분위'] = r.percentile;
+    if (r.grade9 != null) row['석차등급'] = r.grade9;
+    if (r.units != null) row['단위수'] = r.units;
+    if (r.gender != null) row['성별'] = r.gender;
+    if (r.track != null) row['계열'] = r.track;
+    if (r.grade != null) row['학년'] = r.grade;
+    if (r.cohort != null) row['기수'] = r.cohort;
+    return row;
+  });
+  openSmartMapping({
+    rows: pseudoRows,
+    fileName: '현재 분석 데이터 (정규화 후)',
+    onApply: (schema) => {
+      const lowConf = schema.columns.filter(c => c.confidence < 0.7 && c.role !== 'unknown' && c.role !== 'ignore').length;
+      toast('매핑 확인 완료', lowConf === 0 ? '모든 컬럼이 안정적으로 매핑됨' : `${lowConf}개 컬럼이 낮은 신뢰도 — 원본 데이터 검토 권장`, 'success');
+    }
+  });
+}
+
+function deleteMappingTemplate(fingerprint) {
+  const tmpls = loadMappingTemplates();
+  const t = tmpls.find(x => x.fingerprint === fingerprint);
+  if (!t) return;
+  if (!confirm(`매핑 양식 "${t.name}" 을(를) 삭제할까요?`)) return;
+  saveMappingTemplates(tmpls.filter(x => x.fingerprint !== fingerprint));
+  closeDrilldown();
+  toast('삭제됨', t.name, 'success');
+}
+
+function renderDataQuality(report) {
+  const body = document.getElementById('dataQualityBody');
+  if (!body) return;
+  const FIELD_LABELS = { studentId: '학번', studentName: '이름', className: '반',
+    rawScore: '원점수', standardScore: '표준점수', percentile: '백분위', grade9: '석차등급',
+    session: '회차', subject: '과목' };
+
+  const missingCards = Object.entries(report.missing).map(([f, m]) => {
+    const cls = m.ratio > 0.5 ? ' danger' : m.ratio > 0.2 ? ' alert' : '';
+    return `<div class="dq-card${cls}">
+      <div class="dq-label">${FIELD_LABELS[f] || f} 결측</div>
+      <div class="dq-value">${(m.ratio * 100).toFixed(1)}%</div>
+      <div class="dq-detail">${m.count.toLocaleString()} / ${report.total.toLocaleString()}건</div>
+    </div>`;
+  }).join('');
+
+  let outlierHtml = '';
+  if (Object.keys(report.outliersBySubject).length > 0) {
+    outlierHtml = `<div class="dq-issue-list">
+      <h4>📊 이상치 (IQR × 1.5 기준)</h4>
+      ${Object.entries(report.outliersBySubject).slice(0, 10).map(([s, n]) => `
+        <div class="dq-issue-row"><span class="dq-issue-icon">⚠</span><span><strong>${escapeHtml(s)}</strong>: ${n}건의 극단값</span></div>
+      `).join('')}
+    </div>`;
+  }
+
+  let inconsistencyHtml = '';
+  if (report.inconsistencies.length > 0) {
+    const grouped = {};
+    report.inconsistencies.forEach(i => { (grouped[i.type] = grouped[i.type] || []).push(i); });
+    inconsistencyHtml = `<div class="dq-issue-list">
+      <h4>🚨 일관성 위반 (입력 오류 의심)</h4>
+      ${Object.entries(grouped).map(([t, list]) => {
+        const label = { score_range: '원점수가 0-100 범위 밖', grade_range: '등급이 1-9 범위 밖', pct_range: '백분위가 0-100 범위 밖', score_grade_mismatch: '점수↔등급 불일치' }[t] || t;
+        const samples = list.slice(0, 5).map(x => `${x.studentId || '?'} (${x.subject || '?'}): ${x.value}`).join(', ');
+        return `<div class="dq-issue-row danger"><span class="dq-issue-icon">✗</span><span><strong>${label}</strong>: ${list.length}건<br><span style="color:var(--text-muted);font-size:11px">${escapeHtml(samples)}${list.length > 5 ? ` ...외 ${list.length - 5}건` : ''}</span></span></div>`;
+      }).join('')}
+    </div>`;
+  }
+
+  const successHtml = report.issueCount === 0 ? `<div class="dq-issue-list">
+    <h4>✓ 데이터 품질 양호</h4>
+    <div class="dq-issue-row success"><span class="dq-issue-icon">✓</span><span>결측치·이상치·일관성 위반이 발견되지 않았습니다.</span></div>
+  </div>` : '';
+
+  body.innerHTML = `
+    <div style="margin-bottom:10px;font-size:13px">
+      <strong>총 ${report.total.toLocaleString()}건</strong> ·
+      학생 ${report.uniqStudents.toLocaleString()}명 · 과목 ${report.uniqSubjects}개
+      ${report.issueCount > 0
+        ? `<span style="color:var(--warning-600);margin-left:8px">⚠ ${report.issueCount}개 항목 주의</span>`
+        : `<span style="color:var(--success-700);margin-left:8px">✓ 양호</span>`}
+    </div>
+    <div class="dq-grid">${missingCards}</div>
+    ${outlierHtml}
+    ${inconsistencyHtml}
+    ${successHtml}
+  `;
 }
 
 function findCol(row, keywords, blacklist = []) {
@@ -5694,6 +8329,7 @@ function renderGroupResultsWith(data) {
     { id: 'g-compare', label: '집단 비교', icon: 'users' },
     { id: 'g-correlation', label: '상관 분석', icon: 'link' },
     { id: 'g-trend', label: '년도별 추이', icon: 'trending' },
+    { id: 'g-cross', label: '교차 탐색', icon: 'grid' },
     { id: 'g-student', label: '학생 개별 조회', icon: 'search' },
   ];
 
@@ -5717,6 +8353,7 @@ function renderGroupResultsWith(data) {
     <div class="tab-content" id="tab-g-compare" role="tabpanel" aria-labelledby="tabbtn-g-compare">${renderGroupCompare(data)}</div>
     <div class="tab-content" id="tab-g-correlation" role="tabpanel" aria-labelledby="tabbtn-g-correlation">${renderGroupCorrelation(data)}</div>
     <div class="tab-content" id="tab-g-trend" role="tabpanel" aria-labelledby="tabbtn-g-trend">${renderGroupTrend(data)}</div>
+    <div class="tab-content" id="tab-g-cross" role="tabpanel" aria-labelledby="tabbtn-g-cross"><div id="crossTabContent"></div></div>
     <div class="tab-content" id="tab-g-student" role="tabpanel" aria-labelledby="tabbtn-g-student">${renderGroupStudent(data)}</div>
   `;
 
@@ -5744,8 +8381,12 @@ function renderGroupResultsWith(data) {
     catch (e) { console.error('[tab-correlation]', e); }
     try { renderGroupTrendCharts(data); }
     catch (e) { console.error('[tab-trend]', e); }
+    try { renderGroupCross(); renderGroupCrossCharts(); }
+    catch (e) { console.error('[tab-cross]', e); }
     try { renderGroupStudentCharts(data); }
     catch (e) { console.error('[tab-student]', e); }
+    try { wireDrilldownToCharts(); }
+    catch (e) { console.error('[drilldown-wire]', e); }
   }, 0);
 }
 
@@ -6171,7 +8812,7 @@ function renderGroupSummaryCharts(data) {
   const subjGradeCtx = document.getElementById('chartSubjectGrade');
   if (subjGradeCtx) {
     const gradeMeans = visibleSubjects.map(s => subjStats[s].gradeMean);
-    charts.subjectGrade = new Chart(subjGradeCtx, {
+    charts.grade9 = new Chart(subjGradeCtx, {
       type: 'bar',
       data: {
         labels: visibleSubjects,
@@ -6542,7 +9183,7 @@ function renderGroupSubjectCharts(data) {
     <!-- Grade 9 distribution bar chart -->
     <div class="card mb-4">
       <div class="card-header"><div><div class="card-title">9등급 분포</div><div class="card-subtitle">수능식 등급 기준</div></div></div>
-      <div class="chart-container chart-md"><canvas id="subjectGradeBar"></canvas></div>
+      <div class="chart-container chart-md"><canvas id="grade9Bar"></canvas></div>
     </div>
 
     <!-- Class comparison -->
@@ -6627,11 +9268,11 @@ function renderGroupSubjectCharts(data) {
   }
 
   // --- Chart.js grade bar ---
-  const gradeCtx = document.getElementById('subjectGradeBar');
+  const gradeCtx = document.getElementById('grade9Bar');
   if (gradeCtx) {
-    if (charts.subjectGradeBar) charts.subjectGradeBar.destroy();
+    if (charts.grade9Bar) charts.grade9Bar.destroy();
     const gradeColors = ['#10B981', '#34D399', '#60A5FA', '#818CF8', '#A78BFA', '#F59E0B', '#FB923C', '#F87171', '#EF4444'];
-    charts.subjectGradeBar = new Chart(gradeCtx, {
+    charts.grade9Bar = new Chart(gradeCtx, {
       type: 'bar',
       data: {
         labels: ['1등급', '2등급', '3등급', '4등급', '5등급', '6등급', '7등급', '8등급', '9등급'],
@@ -6815,6 +9456,18 @@ function renderGroupCompareCharts(data) {
   const fStat = msWithin > 0 ? msBetween / msWithin : 0;
   const etaSquared = ssBetween + ssWithin > 0 ? ssBetween / (ssBetween + ssWithin) : 0;
 
+  // Compute exact ANOVA p-value (F distribution upper tail)
+  const dfBetween = k - 1;
+  const dfWithin = N - k;
+  const anovaP = (dfBetween > 0 && dfWithin > 0 && fStat > 0)
+    ? StatTests.pFOne(fStat, dfBetween, dfWithin) : null;
+
+  // Tukey HSD post-hoc: which pairs differ significantly?
+  const groupForTukey = {};
+  groupStats.forEach(g => { groupForTukey[g.group] = g.scores; });
+  const tukeyResults = StatTests.tukeyHSD(groupForTukey);
+  const significantPairs = tukeyResults.filter(r => r.p != null && r.p < 0.05).sort((a, b) => Math.abs(b.meanDiff) - Math.abs(a.meanDiff));
+
   const bestGroup = groupStats[0];
   const worstGroup = groupStats[groupStats.length - 1];
   const gap = bestGroup.mean - worstGroup.mean;
@@ -6824,7 +9477,13 @@ function renderGroupCompareCharts(data) {
       <div class="stat-card success"><div class="stat-label">최고 ${groupLabel(dim)}</div><div class="stat-value" style="font-size: var(--text-xl)">${escapeHtml(bestGroup.group)}</div><div class="stat-change same">평균 ${bestGroup.mean.toFixed(1)}</div></div>
       <div class="stat-card danger"><div class="stat-label">최저 ${groupLabel(dim)}</div><div class="stat-value" style="font-size: var(--text-xl)">${escapeHtml(worstGroup.group)}</div><div class="stat-change same">평균 ${worstGroup.mean.toFixed(1)}</div></div>
       <div class="stat-card info"><div class="stat-label">격차</div><div class="stat-value">${gap.toFixed(1)}</div><div class="stat-change same">최고−최저 점수차</div></div>
-      <div class="stat-card warning"><div class="stat-label">집단 차이 (η²)</div><div class="stat-value">${(etaSquared * 100).toFixed(1)}%</div><div class="stat-change same">F=${fStat.toFixed(2)} · ${etaSquared > 0.14 ? '큼' : etaSquared > 0.06 ? '중' : '작음'}</div></div>
+      <div class="stat-card warning"><div class="stat-label">집단 차이 (η²)</div><div class="stat-value">${(etaSquared * 100).toFixed(1)}%</div>
+        <div class="stat-rigor">
+          <span>F(${dfBetween},${dfWithin})=${fStat.toFixed(2)}</span>
+          <span class="rigor-pill ${anovaP != null && anovaP < 0.05 ? 'sig' : 'ns'}">${anovaP != null ? fmtP(anovaP).replace(/^p\s*/, '') : '-'}</span>
+        </div>
+        <div class="stat-change same" style="margin-top:4px">${etaSquared > 0.14 ? '효과 큼' : etaSquared > 0.06 ? '효과 중' : '효과 작음'}${significantPairs.length > 0 ? ` · 유의 페어 ${significantPairs.length}개` : ''}</div>
+      </div>
     </div>
 
     <div class="grid grid-2 mb-4">
@@ -6872,6 +9531,38 @@ function renderGroupCompareCharts(data) {
         </table>
       </div>
     </div>
+
+    ${tukeyResults.length > 0 ? `
+    <div class="card mt-4">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Tukey HSD 사후검정 — 어느 페어가 실제로 다른가</div>
+          <div class="card-subtitle">ANOVA 결과 ${anovaP != null && anovaP < 0.05 ? '<strong style="color:var(--success-700)">유의함</strong> — 페어 비교 신뢰 가능' : '<span style="color:var(--text-muted)">유의하지 않음 — 페어 차이 해석 주의</span>'} · 다중비교 보정 적용</div>
+        </div>
+      </div>
+      <div class="data-table-wrap">
+        <table class="data-table">
+          <thead><tr><th>그룹 A</th><th>그룹 B</th><th>평균 차이</th><th>q 통계량</th><th>보정 p값</th><th>해석</th></tr></thead>
+          <tbody>
+            ${tukeyResults.sort((a,b) => Math.abs(b.meanDiff) - Math.abs(a.meanDiff)).slice(0, 15).map(t => `
+              <tr>
+                <td><strong>${escapeHtml(t.a)}</strong></td>
+                <td><strong>${escapeHtml(t.b)}</strong></td>
+                <td class="num" style="color:${t.meanDiff > 0 ? 'var(--success-700)' : 'var(--danger-600)'}">${t.meanDiff > 0 ? '+' : ''}${t.meanDiff.toFixed(2)}</td>
+                <td class="num">${t.q.toFixed(2)}</td>
+                <td class="num">${t.p != null ? fmtP(t.p) : '-'}</td>
+                <td>${t.p != null && t.p < 0.001 ? '<span style="color:var(--success-700);font-weight:600">매우 유의</span>'
+                  : t.p != null && t.p < 0.01 ? '<span style="color:var(--success-700);font-weight:600">유의</span>'
+                  : t.p != null && t.p < 0.05 ? '<span style="color:var(--success-700)">유의</span>'
+                  : '<span style="color:var(--text-muted)">차이 없음</span>'}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+        ${tukeyResults.length > 15 ? `<div style="font-size:11px;color:var(--text-muted);padding:6px 10px;text-align:center">상위 15개 페어만 표시 (총 ${tukeyResults.length}개)</div>` : ''}
+      </div>
+    </div>
+    ` : ''}
   `;
 
   // --- Chart.js: mean bar chart with SD error indication (custom tooltip) ---
@@ -7209,40 +9900,68 @@ function renderGroupCorrelationCharts(data) {
     reg = stats.regression(xs, ys);
   }
 
+  // Statistical significance: p-value for r against H0: ρ=0; Fisher z 95% CI for r
+  const pAB = StatTests.pPearson(rAB, pairData.length);
+  let ciLow = null, ciHigh = null;
+  if (pairData.length >= 4 && Math.abs(rAB) < 1) {
+    const z = 0.5 * Math.log((1 + rAB) / (1 - rAB));
+    const se = 1 / Math.sqrt(pairData.length - 3);
+    const zLow = z - 1.96 * se, zHigh = z + 1.96 * se;
+    ciLow = (Math.exp(2 * zLow) - 1) / (Math.exp(2 * zLow) + 1);
+    ciHigh = (Math.exp(2 * zHigh) - 1) / (Math.exp(2 * zHigh) + 1);
+  }
+
   content.innerHTML = `
     <div class="grid grid-2 mb-4">
       <div class="card">
-        <div class="card-header"><div><div class="card-title">${escapeHtml(sA)} × ${escapeHtml(sB)} 산점도</div><div class="card-subtitle">상관계수 r = <strong style="color: ${corrColor(rAB)}">${rAB.toFixed(3)}</strong> · ${corrInterpret(rAB)}</div></div></div>
+        <div class="card-header"><div><div class="card-title">${escapeHtml(sA)} × ${escapeHtml(sB)} 산점도</div>
+          <div class="card-subtitle">상관계수 r = <strong style="color: ${corrColor(rAB)}">${rAB.toFixed(3)}</strong>
+            ${ciLow != null ? ` <span style="color:var(--text-muted)">[95% CI ${ciLow.toFixed(2)}, ${ciHigh.toFixed(2)}]</span>` : ''}
+            · ${corrInterpret(rAB)}
+            <span class="rigor-pill ${pAB != null && pAB < 0.05 ? 'sig' : 'ns'}" style="margin-left:6px;font-size:10.5px">${pAB != null ? fmtP(pAB).replace(/^p\s*/, '') : '-'}</span>
+          </div>
+        </div></div>
         <div id="corrScatter" class="chart-container chart-md"></div>
       </div>
       <div class="card">
-        <div class="card-header"><div><div class="card-title">회귀 분석</div></div></div>
+        <div class="card-header"><div><div class="card-title">회귀 분석 + 통계 검정</div></div></div>
         <div class="stat-row-grid">
           <div class="stat-mini"><span class="stat-mini-label">회귀식</span><span class="stat-mini-value" style="font-size: var(--text-base)">y = ${reg.slope.toFixed(2)}x ${reg.intercept >= 0 ? '+' : ''} ${reg.intercept.toFixed(1)}</span><span class="stat-mini-hint">${escapeHtml(sA)} → ${escapeHtml(sB)}</span></div>
           <div class="stat-mini"><span class="stat-mini-label">결정계수 R²</span><span class="stat-mini-value">${(rAB * rAB).toFixed(3)}</span><span class="stat-mini-hint">설명력 ${(rAB * rAB * 100).toFixed(1)}%</span></div>
           <div class="stat-mini"><span class="stat-mini-label">표본 수</span><span class="stat-mini-value">${pairData.length}</span><span class="stat-mini-hint">쌍별 관측치</span></div>
-          <div class="stat-mini"><span class="stat-mini-label">관계 강도</span><span class="stat-mini-value">${corrLabel(rAB)}</span><span class="stat-mini-hint">|r| ${Math.abs(rAB).toFixed(2)}</span></div>
+          <div class="stat-mini"><span class="stat-mini-label">유의성</span><span class="stat-mini-value" style="color:${pAB != null && pAB < 0.05 ? 'var(--success-700)' : 'var(--text-muted)'}">${pAB != null ? fmtP(pAB).replace(/^p\s*/, 'p ') : '-'}</span><span class="stat-mini-hint">H₀: ρ=0 검정</span></div>
         </div>
       </div>
     </div>
 
     <div class="card">
-      <div class="card-header"><div><div class="card-title">과목쌍 상관계수 순위</div><div class="card-subtitle">r| 절대값 내림차순 · 클릭하여 산점도 변경</div></div></div>
+      <div class="card-header"><div><div class="card-title">과목쌍 상관계수 순위 (p값 + 다중비교 보정)</div><div class="card-subtitle">|r| 절대값 내림차순 · 본페로니 보정으로 다중검정 위양성 방지 · 클릭하여 산점도 변경</div></div></div>
       <div class="data-table-wrap">
         <table class="data-table">
-          <thead><tr><th>순위</th><th>과목 A</th><th>과목 B</th><th>상관계수 r</th><th>R²</th><th>강도</th><th></th></tr></thead>
+          <thead><tr><th>순위</th><th>과목 A</th><th>과목 B</th><th>상관계수 r</th><th>R²</th><th>p값</th><th>유의성</th><th></th></tr></thead>
           <tbody>
-            ${pairList.map((p, i) => `
+            ${pairList.map((p, i) => {
+              // Compute n and p for this pair from studentMap
+              const pPairs = Object.values(studentMap).filter(s => s[p.a] != null && s[p.b] != null);
+              const nP = pPairs.length;
+              const rawP = StatTests.pPearson(p.r, nP);
+              const numComparisons = pairList.length;
+              const adjP = rawP == null ? null : Math.min(1, rawP * numComparisons);
+              return `
               <tr>
                 <td>${i + 1}</td>
                 <td>${escapeHtml(p.a)}</td>
                 <td>${escapeHtml(p.b)}</td>
                 <td class="num" style="color: ${corrColor(p.r)}"><strong>${p.r.toFixed(3)}</strong></td>
                 <td class="num">${(p.r * p.r).toFixed(3)}</td>
-                <td>${corrLabel(p.r)}</td>
+                <td class="num">${adjP != null ? fmtP(adjP).replace(/^p\s*/, '') : '-'}</td>
+                <td>${adjP != null && adjP < 0.001 ? '<span style="color:var(--success-700);font-weight:600">매우 유의</span>'
+                  : adjP != null && adjP < 0.01 ? '<span style="color:var(--success-700)">유의</span>'
+                  : adjP != null && adjP < 0.05 ? '<span style="color:var(--success-700)">유의</span>'
+                  : '<span style="color:var(--text-muted)">차이 없음</span>'}</td>
                 <td><button class="btn btn-sm btn-ghost" onclick="onCorrelationChange('x','${escapeHtml(p.a)}'); onCorrelationChange('y','${escapeHtml(p.b)}')">선택</button></td>
-              </tr>
-            `).join('')}
+              </tr>`;
+            }).join('')}
           </tbody>
         </table>
       </div>
@@ -9136,6 +11855,40 @@ function renderReportOptions() {
       </div>
     </div>
 
+    <!-- Custom charts (saved in Chart Studio) — added as appendix slides/sheets -->
+    <div class="ro-section">
+      <div class="ro-section-head">
+        <span class="ro-section-title">내 차트 (보고서 부록)</span>
+        <div class="ro-bulk">
+          <button class="btn btn-ghost btn-sm" onclick="onRoCustomChartsBulk(true)">모두 포함</button>
+          <button class="btn btn-ghost btn-sm" onclick="onRoCustomChartsBulk(false)">모두 해제</button>
+          <button class="btn btn-secondary btn-sm" onclick="closeReportOptions(); openChartStudio();">+ 새 차트</button>
+        </div>
+      </div>
+      ${(state.customCharts || []).length === 0
+        ? `<div style="padding:14px;font-size:12px;color:var(--text-muted);background:var(--bg-hover);border-radius:6px;line-height:1.6">
+            저장된 차트가 없습니다. <strong>+ 새 차트</strong>를 눌러 16종 차트(bar/line/pie/scatter/box/heatmap/treemap/...) 중 원하는 형태를 만들고 저장하면<br>
+            여기에 체크박스로 나타나며 PPT 부록 슬라이드 + Excel "내차트" 시트로 자동 포함됩니다.
+          </div>`
+        : `<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;max-height:300px;overflow-y:auto">
+            ${(state.customCharts || []).map(c => {
+              const typeLabel = (CHART_TYPES.find(t => t.key === c.config?.type) || { label: c.config?.type }).label;
+              return `<label class="ro-checkbox" style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:var(--bg-elevated);align-items:flex-start">
+                <input type="checkbox" ${c.includeInReport ? 'checked' : ''}
+                  onchange="toggleChartReport('${c.id}', this.checked)">
+                <span style="display:flex;flex-direction:column;gap:1px;flex:1;min-width:0">
+                  <span style="font-weight:600;font-size:12.5px;text-overflow:ellipsis;overflow:hidden;white-space:nowrap">${escapeHtml(c.name)}</span>
+                  <span style="font-size:10.5px;color:var(--text-muted)">${escapeHtml(typeLabel)}${c.desc ? ' · ' + escapeHtml(c.desc) : ''}</span>
+                </span>
+              </label>`;
+            }).join('')}
+          </div>
+          <div style="font-size:11px;color:var(--text-subtle);margin-top:8px">
+            💡 체크된 차트만 보고서에 포함됩니다. 차트 스튜디오에서 라이브러리 관리 가능.
+          </div>`
+      }
+    </div>
+
     <!-- Filename suffix -->
     <div class="ro-section">
       <div class="ro-section-head"><span class="ro-section-title">파일명</span></div>
@@ -9184,6 +11937,11 @@ function onRoBulkSheets(checked) {
   const opts = ensureReportOptions();
   Object.keys(opts.includeSheets).forEach(s => { opts.includeSheets[s] = checked; });
   saveReportOptions();
+  renderReportOptions();
+}
+function onRoCustomChartsBulk(checked) {
+  (state.customCharts || []).forEach(c => { c.includeInReport = !!checked; });
+  saveCustomCharts();
   renderReportOptions();
 }
 function onReportOptionsReset() {
@@ -9975,13 +12733,41 @@ async function exportCounselPpt() {
     }
     }  // end includeRosters
 
+    // ----- Custom charts (from Chart Studio) — appendix slides -----
+    const customSelected = (state.customCharts || []).filter(c => c.includeInReport);
+    if (customSelected.length > 0) {
+      LoadingOverlay.update(`내 차트 ${customSelected.length}장 슬라이드 작성 중...`, 88);
+      const images = await renderCustomChartsToImages(1280, 720);
+      images.forEach(({ chart, dataUrl }) => {
+        if (!dataUrl) return;
+        const slide = pptx.addSlide();
+        slide.background = { color: 'FFFFFF' };
+        slide.addText(chart.name || '내 차트', {
+          x: 0.4, y: 0.3, w: 12.5, h: 0.6,
+          fontSize: 22, bold: true, color: '111827', fontFace: 'Malgun Gothic',
+        });
+        if (chart.desc) {
+          slide.addText(chart.desc, {
+            x: 0.4, y: 0.95, w: 12.5, h: 0.4,
+            fontSize: 12, color: '6B7280', fontFace: 'Malgun Gothic',
+          });
+        }
+        slide.addImage({ data: dataUrl, x: 0.6, y: 1.5, w: 12.1, h: 5.6 });
+        slide.addText(`내 차트 (${(CHART_TYPES.find(t => t.key === chart.config?.type) || {}).label || chart.config?.type})`, {
+          x: 0.4, y: 7.2, w: 12.5, h: 0.25,
+          fontSize: 9, color: '94A3B8', fontFace: 'Malgun Gothic', align: 'right',
+        });
+      });
+    }
+
     LoadingOverlay.update('파일 작성 중...', 92);
 
     // ----- Save -----
     const fname = buildReportFilename('pptx');
     await pptx.writeFile({ fileName: fname });
     LoadingOverlay.hide();
-    toast('PPT 보고서 생성', `${1 + SUBJECTS.length + ROSTER_SHEETS.length}개 슬라이드 다운로드`, 'success');
+    const customSlideCount = customSelected.length;
+    toast('PPT 보고서 생성', `${1 + SUBJECTS.length + ROSTER_SHEETS.length}개 기본 슬라이드${customSlideCount ? ` + 내 차트 ${customSlideCount}장` : ''} 다운로드`, 'success');
   } catch (e) {
     LoadingOverlay.hide();
     console.error('[exportCounselPpt]', e);
@@ -10148,6 +12934,44 @@ async function exportCounselReport() {
       }
     }
 
+    // ----- Custom charts (from Chart Studio) — appendix sheets with embedded images -----
+    const customSelected = (state.customCharts || []).filter(c => c.includeInReport);
+    if (customSelected.length > 0) {
+      LoadingOverlay.update(`내 차트 ${customSelected.length}개 시트 작성 중...`, 88);
+      try {
+        const images = await renderCustomChartsToImages(1280, 720);
+        images.forEach(({ chart, dataUrl }, idx) => {
+          if (!dataUrl) return;
+          // Sanitize sheet name (Excel: 31-char limit, no [ ] : * ? / \ )
+          const safeName = (chart.name || `내차트${idx + 1}`).replace(/[\\\/\[\]\*\?:]/g, '_').slice(0, 28);
+          const sheetName = `📊_${safeName}`.slice(0, 31);
+          const sheet = wb.addWorksheet(sheetName);
+          sheet.getColumn(1).width = 22;
+          for (let i = 2; i <= 16; i++) sheet.getColumn(i).width = 11;
+          sheet.getCell('A1').value = chart.name;
+          sheet.getCell('A1').font = { bold: true, size: 16 };
+          sheet.mergeCells('A1:N1');
+          if (chart.desc) {
+            sheet.getCell('A2').value = chart.desc;
+            sheet.getCell('A2').font = { color: { argb: 'FF6B7280' }, italic: true };
+            sheet.mergeCells('A2:N2');
+          }
+          const typeLabel = (CHART_TYPES.find(t => t.key === chart.config?.type) || {}).label || chart.config?.type;
+          sheet.getCell('A3').value = `차트 종류: ${typeLabel}  ·  생성일: ${new Date(chart.createdAt).toLocaleDateString()}`;
+          sheet.getCell('A3').font = { color: { argb: 'FF94A3B8' }, size: 10 };
+          sheet.mergeCells('A3:N3');
+          // Embed image
+          const base64 = dataUrl.split(',')[1];
+          const imgId = wb.addImage({ base64, extension: 'png' });
+          // Place at A5 spanning ~14 columns × ~30 rows
+          sheet.addImage(imgId, { tl: { col: 0, row: 4 }, ext: { width: 1024, height: 576 } });
+        });
+      } catch (e) {
+        console.error('custom charts → excel failed', e);
+        errors.push(`내 차트 시트: ${e.message?.slice(0, 80) || e}`);
+      }
+    }
+
     LoadingOverlay.update('파일 작성 중...', 92);
     const buf = await wb.xlsx.writeBuffer();
     LoadingOverlay.update('다운로드 시작', 100);
@@ -10160,11 +12984,12 @@ async function exportCounselReport() {
     URL.revokeObjectURL(url);
     LoadingOverlay.hide();
 
+    const customSheetCount = customSelected.length;
     if (errors.length > 0) {
       toast('보고서 생성 (일부 오류)', `${presentSheets.length - errors.length}/${presentSheets.length} 시트 성공, ${errors.length}건 실패`, 'warning');
       console.warn('[counsel-report errors]', errors);
     } else {
-      toast('입학 홍보팀 분석 생성', `${presentSheets.length}개 시트 + 차트 다운로드`, 'success');
+      toast('입학 홍보팀 분석 생성', `${presentSheets.length}개 기본 시트${customSheetCount ? ` + 내 차트 ${customSheetCount}개 시트` : ''} 다운로드`, 'success');
     }
   } catch (e) {
     LoadingOverlay.hide();
@@ -10973,7 +13798,19 @@ const commandPaletteCommands = () => {
     { id: 'tab-4', section: '분석 탭', icon: 'tab', title: '집단 비교',          sub: '반 · 계열 · 성별 간 비교', hint: '4', action: () => switchTab('g-compare'), requireData: true },
     { id: 'tab-5', section: '분석 탭', icon: 'tab', title: '과목 간 상관 분석',   sub: '과목 쌍의 점수 상관도', hint: '5', action: () => switchTab('g-correlation'), requireData: true },
     { id: 'tab-6', section: '분석 탭', icon: 'tab', title: '년도별 추이',        sub: '코호트 · 다년 비교', hint: '6', action: () => switchTab('g-trend'), requireData: true },
-    { id: 'tab-7', section: '분석 탭', icon: 'tab', title: '학생 개별 조회',     sub: '학생 1명 — 레이더 · 추이 · 순위', hint: '7', action: () => switchTab('g-student'), requireData: true },
+    { id: 'tab-cross', section: '분석 탭', icon: 'tab', title: '교차 탐색',     sub: '행/열/측정값을 자유롭게 조합한 히트맵', hint: '7', action: () => switchTab('g-cross'), requireData: true },
+    { id: 'tab-7', section: '분석 탭', icon: 'tab', title: '학생 개별 조회',     sub: '학생 1명 — 레이더 · 추이 · 순위', hint: '8', action: () => switchTab('g-student'), requireData: true },
+
+    // === 그룹 ===
+    { id: 'grp-mgr', section: '내 그룹', icon: 'folder', title: '그룹 관리 열기', sub: '학생 묶어서 비교 · 필터로 활용', hint: '', action: openGroupManager, requireData: true },
+
+    // === 차트 ===
+    { id: 'chart-studio', section: '내 차트', icon: 'chart', title: '차트 스튜디오 열기', sub: '엑셀 수준 16종 차트 — bar/line/pie/scatter/box/heatmap/treemap/...', hint: '', action: () => openChartStudio(), requireData: true },
+    { id: 'chart-lib',    section: '내 차트', icon: 'folder', title: '차트 라이브러리 열기', sub: '저장된 차트 관리 · 보고서 포함 토글', hint: '', action: openChartLibrary, requireData: true },
+
+    // === 데이터 품질·매핑 ===
+    { id: 'dq-open',  section: '데이터 품질', icon: 'help', title: '데이터 품질 보고서', sub: '결측치 · 이상치 · 일관성 위반 점검', hint: '', action: openDataQuality, requireData: true },
+    { id: 'map-list', section: '데이터 품질', icon: 'tab',  title: '저장된 양식 매핑 보기', sub: '같은 헤더로 재업로드 시 자동 적용되는 양식 목록', hint: '', action: openMappingTemplatesList },
 
     // === 빠른 필터 ===
     { id: 'fil-clear', section: '빠른 필터', icon: 'reset',  title: '필터 초기화', sub: '모든 조건 해제', hint: '', action: clearFilters, requireData: true },
@@ -11276,12 +14113,12 @@ document.addEventListener('keydown', (e) => {
     }
     return;
   }
-  // Tab navigation with 1-7 and Ctrl+Arrow (only when results visible)
+  // Tab navigation with 1-8 and Ctrl+Arrow (only when results visible)
   const resultsVisible = !document.getElementById('resultsSection')?.classList.contains('hidden');
   if (!resultsVisible || isTyping) return;
 
-  const groupTabs = ['g-summary','g-distribution','g-subject','g-compare','g-correlation','g-trend','g-student'];
-  if (/^[1-7]$/.test(e.key) && !e.ctrlKey && !e.metaKey) {
+  const groupTabs = ['g-summary','g-distribution','g-subject','g-compare','g-correlation','g-trend','g-cross','g-student'];
+  if (/^[1-8]$/.test(e.key) && !e.ctrlKey && !e.metaKey) {
     const n = parseInt(e.key, 10) - 1;
     if (groupTabs[n]) { e.preventDefault(); switchTab(groupTabs[n]); }
     return;

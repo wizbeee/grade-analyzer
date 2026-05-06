@@ -2,7 +2,7 @@
 
 ## 프로젝트 개요
 반·학년·전교 단위 집단 성적 분석 + 개인 진단 프로그램.
-단일 HTML 파일(index.html) 아키텍처, 완전 오프라인 동작.
+단일 HTML 파일(index.html, ~14k줄) 아키텍처, 완전 오프라인 동작.
 
 ## 실행 방법
 ```bash
@@ -15,7 +15,7 @@ npx http-server . -p 8091 --cors -c-1
 ## 파일 구조
 ```
 grade-analyzer/
-├── index.html          ← 전체 프로그램 (HTML + CSS + JS, ~5500줄)
+├── index.html          ← 전체 프로그램 (HTML + CSS + JS, ~14,200줄)
 ├── vendor/             ← 오프라인 라이브러리 (6.5MB, 커밋 포함)
 │   ├── xlsx.full.min.js       (XLSX.js 0.18.5)
 │   ├── chart.umd.min.js      (Chart.js 4.4.1)
@@ -36,16 +36,17 @@ grade-analyzer/
 
 ## 구현 완료 기능
 
-### 7개 분석 탭 (집단 모드)
+### 8개 분석 탭 (집단 모드)
 | 탭 | ID | 주요 차트/기능 |
 |---|---|---|
 | 1. 전체 요약 | g-summary | KPI 4종, 과목별 테이블, 자동 인사이트, What-if 시뮬레이터 |
 | 2. 점수 분포 | g-distribution | Plotly 히스토그램+정규곡선, 박스플롯, Chart.js 등급 누적 |
 | 3. 과목 심층 | g-subject | 과목별 KPI, Plotly 히스토그램, 9등급 막대, 반비교, 상하위10 |
-| 4. 집단 비교 | g-compare | 반/성별/계열 차원, ANOVA η², Plotly 박스플롯 |
-| 5. 상관 관계 | g-correlation | Plotly 히트맵, 산점도+회귀선, 상관 해석 |
+| 4. 집단 비교 | g-compare | 반/성별/계열 차원, ANOVA F+p값+η², **Tukey HSD 사후검정**, Plotly 박스플롯 |
+| 5. 상관 관계 | g-correlation | Plotly 히트맵, 산점도+회귀선, **Pearson p값+95% CI+본페로니 보정** |
 | 6. 추세 분석 | g-trend | Mode A(동일코호트)/B(다른코호트) 자동 감지, 년도별 추이 |
-| 7. 학생 진단 | g-student | 레이더, 과목별 바, 회차/년도 라인, 반내 순위 |
+| 7. **교차 탐색** | **g-cross** | **NEW**: 9차원×9차원×6메트릭 자유 조합 히트맵, 셀 클릭 드릴다운 |
+| 8. 학생 진단 | g-student | 레이더, 과목별 바, 회차/년도 라인, 반내 순위 |
 
 ### Phase 2 기능
 - 필터 패널 (년도/회차/반/성별/계열 칩)
@@ -55,12 +56,24 @@ grade-analyzer/
 - LocalStorage 프로젝트 저장/불러오기 (최대 20개)
 - JSON 백업 내보내기/가져오기 (다른 PC 이동용)
 - Excel 4시트/PDF/CSV/이미지 내보내기
-- 명령 팔레트 (Ctrl+K, 20개 명령)
-- 키보드 단축키 (1~7 탭이동, Ctrl+S/D/←/→, Shift+?)
+- 명령 팔레트 (Ctrl+K, 25+ 명령)
+- 키보드 단축키 (1~8 탭이동, Ctrl+S/D/←/→, Shift+?)
 - 도움말 모달
 - 자동 인사이트 (5가지 지표)
 - 샘플 데이터셋 3종 (group-mock/group-naesin/group-small)
 - 다크 모드
+
+### Phase 4 기능 (분석 자유도 ↑)
+- **드릴다운**: Chart.js 거의 모든 차트 클릭 → `wireDrilldownToCharts()`가 onClick 자동 주입 → 학생 명단 모달 (CSV export)
+- **교차 탐색 탭(g-cross)**: 행/열/측정값 자유 조합 — `state.cross` + `buildCrossMatrix()` + 컬러 히트맵
+- **사용자 정의 그룹** (`state.customGroups`): 학생 다중선택 → 색상·이름 그룹 → 사이드바 칩 토글 시 `state.filters.customGroups`로 전체 분석 좁힘. 별도 LocalStorage(`grade-analyzer-custom-groups-v1`)
+- **차트 스튜디오** (`state.customCharts` + `state.chartStudio`): 16종 Plotly 차트(bar/line/area/pie/scatter/bubble/3d/radar/box/violin/histogram/heatmap/waterfall/funnel/treemap/sunburst) 자유 빌드 → 라이브러리 저장 → 보고서 PPT 부록 슬라이드 + Excel 이미지 시트로 자동 임베드. 별도 LocalStorage(`grade-analyzer-custom-charts-v1`)
+
+### Phase 5 기능 (분석 정확도 ↑ — API 없음)
+- **컬럼 통계 프로파일러** (`profileColumn`, `inferColumnRole`, `buildSheetSchema`): 데이터 분포·범위·유니크성으로 23개 역할 자동 추론. 헤더+데이터 이중 검증으로 신뢰도 0~1 산출
+- **매핑 확인 모달**: 신뢰도 < 70% 컬럼 강조, 23개 역할 드롭다운 즉시 변경, **헤더 fingerprint 저장**(`grade-analyzer-mappings-v1`)으로 같은 양식 재업로드 시 자동 적용
+- **데이터 품질 보고서**: 9개 필드 결측률, 과목별 IQR×1.5 이상치, 4종 일관성 위반(점수범위/등급범위/백분위범위/점수↔등급 모순)
+- **고급 통계 (`StatTests`)**: lnGamma(Lanczos) → incBeta(연분수) → t분포·F분포·Pearson p값. 95% CI는 t/Fisher z 변환. **Tukey HSD 사후검정 + 본페로니 보정**으로 다중비교 위양성 방지
 
 ### 엑셀 파싱
 - **Long 포맷**: 과목/원점수 컬럼이 있는 세로형
@@ -72,13 +85,22 @@ grade-analyzer/
 - `renderGroupSummary` / `renderGroupSummaryCharts` — 탭 1
 - `renderGroupDistribution` / `renderGroupDistributionCharts` — 탭 2
 - `renderGroupSubject` / `renderGroupSubjectCharts` — 탭 3
-- `renderGroupCompare` / `renderGroupCompareCharts` — 탭 4
-- `renderGroupCorrelation` / `renderGroupCorrelationCharts` — 탭 5
+- `renderGroupCompare` / `renderGroupCompareCharts` — 탭 4 (ANOVA p값 + Tukey HSD)
+- `renderGroupCorrelation` / `renderGroupCorrelationCharts` — 탭 5 (Pearson p값 + 본페로니)
 - `renderGroupTrend` / `renderGroupTrendCharts` — 탭 6
-- `renderGroupStudent` / `renderGroupStudentCharts` — 탭 7
+- `renderGroupCross` / `renderGroupCrossCharts` — 탭 7 (NEW: 자유 교차)
+- `renderGroupStudent` / `renderGroupStudentCharts` — 탭 8
 - `processUploadedFiles` — 엑셀 파싱 메인 진입점
 - `detectWideSubjectColumns` / `expandWideRow` — Wide 포맷 변환
-- `normalizeRecord` / `findCol` — Long 포맷 컬럼 매핑
+- `normalizeRecord` / `findCol` — Long 포맷 컬럼 매핑 (legacy 키워드 기반)
+- `profileColumn` / `inferColumnRole` / `buildSheetSchema` — NEW: 데이터 기반 자동 추론
+- `openSmartMapping` / `applyMappingTemplate` / `loadMappingTemplates` — NEW: 매핑 모달 + fingerprint
+- `normalizeRecordSchema` — NEW: 사용자 확정 스키마로 정규화
+- `runDataQuality` / `openDataQuality` — NEW: 결측·이상치·일관성 보고서
+- `StatTests` (`pTTwo`, `pFOne`, `pPearson`, `tukeyHSD`, `welchT`, `cohensD`, `meanCI`) — NEW: 정확 p값/효과크기/CI
+- `wireDrilldownToCharts` / `drilldownByLabels` / `openDrilldown` — NEW: 차트 클릭 드릴다운
+- `openChartStudio` / `buildPlotlyChart` / `renderCustomChartsToImages` — NEW: 16종 차트 빌더
+- `openGroupManager` / `toggleGroupFilter` — NEW: 사용자 정의 그룹
 - `generateAutoInsights` — 자동 인사이트
 - `onWhatIfChange` — What-if 시뮬레이터
 - `exportProjectJson` / `importProjectJson` — JSON 백업
