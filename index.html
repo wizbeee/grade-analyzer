@@ -5386,6 +5386,8 @@ const CHART_TYPES = [
   { key: 'bar-stack',   label: '누적 막대',     family: 'bar',   icon: '<rect x="4" y="14" width="6" height="7"/><rect x="4" y="6" width="6" height="8"/><rect x="14" y="11" width="6" height="10"/><rect x="14" y="3" width="6" height="8"/>', needs: { x: true, y: true, group: true } },
   { key: 'bar-100',     label: '100% 누적',    family: 'bar',   icon: '<rect x="4" y="13" width="6" height="8"/><rect x="4" y="3" width="6" height="10"/><rect x="14" y="9" width="6" height="12"/><rect x="14" y="3" width="6" height="6"/>', needs: { x: true, y: true, group: true } },
   { key: 'barh',        label: '가로 막대',     family: 'bar',   icon: '<rect x="3" y="4" width="11" height="3"/><rect x="3" y="10" width="17" height="3"/><rect x="3" y="16" width="8" height="3"/>', needs: { x: true, y: true, group: false } },
+  { key: 'barh-stack',  label: '누적 가로 막대', family: 'bar',  icon: '<rect x="3" y="4" width="5" height="3"/><rect x="8" y="4" width="13" height="3"/><rect x="3" y="10" width="8" height="3"/><rect x="11" y="10" width="10" height="3"/><rect x="3" y="16" width="3" height="3"/><rect x="6" y="16" width="15" height="3"/>', needs: { x: true, y: true, group: true } },
+  { key: 'barh-100',    label: '100% 가로 누적', family: 'bar', icon: '<rect x="3" y="4" width="7" height="3"/><rect x="10" y="4" width="11" height="3"/><rect x="3" y="10" width="14" height="3"/><rect x="17" y="10" width="4" height="3"/><rect x="3" y="16" width="11" height="3"/><rect x="14" y="16" width="7" height="3"/>', needs: { x: true, y: true, group: true } },
   { key: 'line',        label: '선',            family: 'line',  icon: '<polyline points="3,16 7,11 11,13 15,5 21,9"/>', needs: { x: true, y: true, group: false } },
   { key: 'line-marker', label: '선+점',         family: 'line',  icon: '<polyline points="3,16 7,11 11,13 15,5 21,9"/><circle cx="7" cy="11" r="1.5"/><circle cx="11" cy="13" r="1.5"/><circle cx="15" cy="5" r="1.5"/>', needs: { x: true, y: true, group: false } },
   { key: 'area',        label: '영역',          family: 'line',  icon: '<polygon points="3,21 3,16 7,11 11,13 15,5 21,9 21,21"/>', needs: { x: true, y: true, group: false } },
@@ -5806,11 +5808,15 @@ function buildPlotlyChart(cfg, records) {
   }
 
   // bar / line / area variants
-  const barMode = typeMeta.key === 'bar-stack' || typeMeta.key === 'bar-100' || typeMeta.key === 'area-stack' ? 'stack' : 'group';
+  const isStacked = ['bar-stack', 'bar-100', 'barh-stack', 'barh-100', 'area-stack'].includes(typeMeta.key);
+  const isHoriz = ['barh', 'barh-stack', 'barh-100'].includes(typeMeta.key);
+  const isPercent = typeMeta.key === 'bar-100' || typeMeta.key === 'barh-100';
+  const showLabels = ['barh-stack', 'barh-100'].includes(typeMeta.key);  // 사용자 요청: 누적 가로 막대에 수치 표시
+  const barMode = isStacked ? 'stack' : 'group';
   const traces = gKeys.map((gk, i) => {
     let yVals = xKeys.map(xk => csAggregate(cells[xk]?.[gk] || [], cfg.metric));
-    if (typeMeta.key === 'bar-100') {
-      // Normalize each x to 100%
+    if (isPercent) {
+      // Normalize each x to 100% (절대값 → 비율)
       yVals = xKeys.map((xk, j) => {
         const total = gKeys.reduce((s, ggk) => s + (csAggregate(cells[xk]?.[ggk] || [], cfg.metric) || 0), 0);
         return total ? (yVals[j] || 0) / total * 100 : 0;
@@ -5826,19 +5832,39 @@ function buildPlotlyChart(cfg, records) {
         line: { color, width: 2 }, marker: { color, size: 6 },
       };
     }
+    const labelText = showLabels
+      ? yVals.map(v => {
+          if (v == null) return '';
+          if (isPercent) return v >= 4 ? `${v.toFixed(0)}%` : '';  // 4% 미만은 라벨 생략 (가독성)
+          return Number.isInteger(v) ? String(v) : v.toFixed(1);
+        })
+      : undefined;
     return {
-      type: 'bar', x: typeMeta.key === 'barh' ? yVals : xKeys, y: typeMeta.key === 'barh' ? xKeys : yVals,
-      orientation: typeMeta.key === 'barh' ? 'h' : 'v',
+      type: 'bar',
+      x: isHoriz ? yVals : xKeys,
+      y: isHoriz ? xKeys : yVals,
+      orientation: isHoriz ? 'h' : 'v',
       name: useGroup ? gk : metricLabel,
       marker: { color },
+      text: labelText,
+      textposition: showLabels ? 'inside' : undefined,
+      insidetextanchor: showLabels ? 'middle' : undefined,
+      textfont: showLabels ? { size: 10, color: '#fff', family: 'Pretendard, sans-serif' } : undefined,
+      hovertemplate: isPercent
+        ? `%{y}<br>${useGroup ? gk : metricLabel}: %{x:.1f}%<extra></extra>`
+        : undefined,
     };
   });
   return {
     data: traces,
     layout: Object.assign({}, baseLayout, {
       barmode: barMode,
-      xaxis: typeMeta.key === 'barh' ? { title: typeMeta.key === 'bar-100' ? '%' : metricLabel } : { title: xLabel },
-      yaxis: typeMeta.key === 'barh' ? { title: xLabel } : { title: typeMeta.key === 'bar-100' ? '%' : metricLabel },
+      xaxis: isHoriz
+        ? { title: isPercent ? '%' : metricLabel, range: isPercent ? [0, 100] : undefined, ticksuffix: isPercent ? '%' : '' }
+        : { title: xLabel },
+      yaxis: isHoriz
+        ? { title: xLabel }
+        : { title: isPercent ? '%' : metricLabel, range: isPercent ? [0, 100] : undefined, ticksuffix: isPercent ? '%' : '' },
       showlegend: useGroup,
     }),
   };
@@ -12503,9 +12529,15 @@ const ReportCharts = {
     const flushSubject = () => {
       if (!currentSubject || dataRows.length === 0) return;
       const labels = dataRows.map(r => r[0]);  // 기수 라벨
+      // 100% normalized: 각 기수의 1~9등급 합을 100%로 환산하여 막대 길이를 동일하게
+      const rowTotals = dataRows.map(r => {
+        let s = 0;
+        for (let g = 1; g <= 9; g++) s += (+r[g + 1] || 0);
+        return s || 1;  // 0 분모 방지
+      });
       const datasets = [];
       for (let g = 1; g <= 9; g++) {
-        const data = dataRows.map(r => +r[g + 1] || 0);  // counts[g] is in column g+2 (after 인원수 at col 1)
+        const data = dataRows.map((r, i) => ((+r[g + 1] || 0) / rowTotals[i]) * 100);
         datasets.push({
           label: `${g}등급`,
           data,
@@ -12519,14 +12551,24 @@ const ReportCharts = {
           type: 'bar',
           data: { labels, datasets },
           options: {
-            indexAxis: 'y',  // horizontal stacked bar (PPT 스타일)
+            indexAxis: 'y',  // horizontal 100% stacked bar (PPT 스타일)
             plugins: {
-              title: { display: true, text: `${currentSubject} — 기수별 등급 분포`, font: { family: 'Malgun Gothic, Arial', size: 14, weight: 'bold' } },
+              title: { display: true, text: `${currentSubject} — 기수별 등급 분포 (100% 누적)`, font: { family: 'Malgun Gothic, Arial', size: 14, weight: 'bold' } },
               legend: { position: 'bottom', labels: { font: { family: 'Malgun Gothic, Arial', size: 10 } } },
-              tooltip: { mode: 'index' },
+              tooltip: {
+                mode: 'index',
+                callbacks: {
+                  label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.x.toFixed(1)}%`,
+                },
+              },
             },
             scales: {
-              x: { stacked: true, ticks: { font: { family: 'Malgun Gothic, Arial' } } },
+              x: {
+                stacked: true,
+                min: 0,
+                max: 100,
+                ticks: { font: { family: 'Malgun Gothic, Arial' }, callback: (v) => `${v}%` },
+              },
               y: { stacked: true, ticks: { font: { family: 'Malgun Gothic, Arial' } } },
             },
           },
@@ -12727,8 +12769,8 @@ async function exportCounselPpt() {
     LoadingOverlay.update('1등급 명단 슬라이드 작성 중...', 70);
 
     // ----- Slides for 1등급 명단 (국어/수학/영어) -----
-    if (pptOpts.includeRosters) {
     const ROSTER_SHEETS = ['국어 1등급 명단', '수학 1등급 명단', '영어 1등급 명단'];
+    if (pptOpts.includeRosters) {
     const rosterTopN = pptOpts.rosterTopN || 28;
     for (const sheetName of ROSTER_SHEETS) {
       const aoa = result.sheets[sheetName];
