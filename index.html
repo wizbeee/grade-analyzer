@@ -3356,6 +3356,16 @@ svg { display: block; }
         </div>
       </div>
 
+      <div class="field" style="margin-top:24px;padding:14px;border:1px solid var(--border);border-radius:8px;background:var(--bg-subtle)">
+        <label style="color:var(--danger,#dc2626)">완전히 처음부터 새 분석 시작</label>
+        <div style="font-size:var(--text-xs);color:var(--text-muted);margin:6px 0 10px">
+          현재 분석 데이터·업로드 파일·필터·차트가 모두 비워지고 업로드 화면으로 돌아갑니다. 내 차트/내 그룹/매핑 양식은 보존됩니다.
+        </div>
+        <button class="btn btn-secondary" onclick="startNewAnalysis()" style="border-color:var(--danger,#dc2626);color:var(--danger,#dc2626)">
+          새 분석 시작 (전체 초기화)
+        </button>
+      </div>
+
       <div class="field" style="margin-top:24px">
         <label>백업 파일 (다른 PC로 이동)</label>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -8240,6 +8250,28 @@ async function startAnalysis() {
       if (btnOriginal != null) btn.innerHTML = btnOriginal;
     }
   }
+}
+
+/* 완전히 처음부터 새 분석 시작.
+   confirm → 자동저장 삭제 → 페이지 reload (모든 메모리 상태/차트가 초기 상태로).
+   사용자가 만든 차트 라이브러리/그룹/매핑 양식은 보존 (LocalStorage 별도 키). */
+async function startNewAnalysis() {
+  const recCount = state.parsedData?.length || 0;
+  const fileCount = state.uploadedFiles?.length || 0;
+  if (recCount > 0 || fileCount > 0) {
+    const ok = await customConfirm({
+      title: '새 분석 시작',
+      message: `현재 분석 데이터 ${recCount.toLocaleString()}건${fileCount ? ` · 업로드 파일 ${fileCount}개` : ''}이 모두 비워집니다.\n\n저장하지 않은 작업은 사라집니다.\n\n💡 데이터를 보존하려면 먼저 "프로젝트 관리 → 현재 분석 내보내기"로 백업을 받으세요.\n\n(내 차트/내 그룹/매핑 양식은 보존됩니다)`,
+      okText: '새 분석 시작',
+      cancelText: '취소',
+      danger: true,
+    });
+    if (!ok) return;
+  }
+  clearAutoSave();
+  try { closeProjectsModal(); } catch (e) {}
+  // 페이지 새로고침으로 모든 in-memory 상태 완전 초기화
+  window.location.reload();
 }
 
 function showUploadSection() {
@@ -13844,7 +13876,7 @@ const commandPaletteCommands = () => {
     { id: 'proj-bak', section: '프로젝트', icon: 'download', title: '백업 파일 내보내기', sub: '현재 분석을 .json 파일로', hint: '', action: () => exportProjectJson('current'), requireData: true },
     { id: 'proj-bakall', section: '프로젝트', icon: 'download', title: '전체 프로젝트 백업', sub: '저장된 모든 프로젝트', hint: '', action: () => exportProjectJson('all') },
     { id: 'proj-load', section: '프로젝트', icon: 'upload', title: '백업 파일 불러오기', sub: '.json 파일에서 복원', hint: '', action: () => { openProjectsModal(); setTimeout(() => document.getElementById('importProjectInput').click(), 150); } },
-    { id: 'proj-new', section: '프로젝트', icon: 'back',   title: '새 분석 시작', sub: '업로드 화면으로 돌아가기', hint: '', action: showUploadSection },
+    { id: 'proj-new', section: '프로젝트', icon: 'back',   title: '새 분석 시작 (전체 초기화)', sub: '데이터/파일/필터 모두 비우고 처음부터', hint: '', action: startNewAnalysis },
 
     // === 환경설정 ===
     { id: 'set-theme', section: '환경설정', icon: 'theme', title: '다크/라이트 테마 전환', sub: '시스템 폰트와 어울리는 모노크롬', hint: '⌘D', action: toggleTheme },
