@@ -3870,7 +3870,7 @@ const stats = {
 let state = {
   uploadedFiles: [],        // [{file, yearLabel}]
   parsedData: null,         // Normalized records
-  analysisMode: 'group',    // 'group' | 'personal'
+  analysisMode: 'group',    // 'group' | 'personal' | 'freshman'
   autoDetectedMode: null,
   currentTab: null,
   theme: localStorage.getItem('theme') || 'light',
@@ -3883,6 +3883,17 @@ let state = {
   drilldownState: null,     // { records, columns, title } — for CSV export
   customCharts: [],         // [{ id, name, desc, type, config, thumb, includeInReport, createdAt }]
   chartStudio: null,        // Live editor state — { name, type, x, y, group, agg, metric, scope, ... }
+  // ── 신입생 분석 모드 (단계 a-1: 파서 + 데이터 모델) ──
+  freshmanData: [],         // [{ kisu, year, name, gender, admissionType, middleSchool, region, ... }]
+  freshmanFiles: [],        // [{ file, parsedAt, sheetCount, recordCount, diagnostics }]
+  freshmanFilter: {         // 표시 필터 (데이터 자체는 전체 보관, 화면 기본값만 최근 5년)
+    rangeYears: 5,          // 'all' 또는 숫자 N (최근 N년)
+    kisu: [],               // 선택된 기수 목록 ([]이면 rangeYears 적용)
+    admissionTypes: [],
+    regions: [],
+    middleSchools: [],
+    genders: [],
+  },
 };
 
 /* ============================================================
@@ -7737,6 +7748,312 @@ function toNum(v) {
   if (v == null || v === '') return null;
   const n = Number(String(v).replace(/,/g, ''));
   return isNaN(n) ? null : n;
+}
+
+/* ============================================================
+   신입생 분석 파서 (단계 a-1)
+   - 13개 기수 시트 자동 인식 (시트명 "(N기)")
+   - 컬럼 자동 매핑 + 정규화 (전형명/지역/성별)
+   - 진단 메타데이터로 누락 사유 추적
+   - 매년 양식 변형에 강건한 자동 매핑 + (추후 a-2에서 매핑 모달 폴백)
+   ============================================================ */
+
+// 신입생 컬럼 자동 매핑 후보 (우선순위 순)
+const FRESHMAN_COL_CANDIDATES = {
+  name:           ['성명(한글)', '성명', '이름'],
+  romanizedName:  ['성명(영문)'],
+  gender:         ['성별'],
+  admissionType:  ['지원전형', '전형구분', '전형'],
+  middleSchool:   ['출신중', '출신학교', '중학교'],
+  region:         ['중학교 지역', '지역'],
+  studentId6:     ['학번(6자리)', '학번'],
+  jumin:          ['주민등록번호', '주민번호'],
+  birthDate:      ['생년월일'],
+  address:        ['주소'],
+  receiptNo:      ['접수번호'],
+  examNo:         ['수험번호'],
+};
+
+// 헤더 후보 리스트에서 시트 헤더 행과 매칭하여 컬럼 인덱스 찾기.
+// 정확 일치 우선 → 공백 무시 일치 → 부분 일치 (2자 이상). 첫 일치 반환.
+function findFreshmanCol(headers, candidates) {
+  const norm = headers.map(h => String(h ?? '').trim());
+  const normNoWs = norm.map(h => h.replace(/\s+/g, ''));
+  for (const cand of candidates) {
+    const i = norm.indexOf(cand);
+    if (i >= 0) return i;
+  }
+  for (const cand of candidates) {
+    const candNoWs = cand.replace(/\s+/g, '');
+    const i = normNoWs.indexOf(candNoWs);
+    if (i >= 0) return i;
+  }
+  for (const cand of candidates) {
+    if (cand.length < 2) continue;
+    const i = norm.findIndex(h => h && h.includes(cand));
+    if (i >= 0) return i;
+  }
+  return -1;
+}
+
+function normalizeFreshmanGender(v) {
+  const s = String(v ?? '').trim();
+  if (!s) return null;
+  if (s === '남' || s === '남자' || s === 'M' || s === 'm') return '남';
+  if (s === '여' || s === '여자' || s === 'F' || s === 'f') return '여';
+  return null;
+}
+
+function normalizeAdmissionType(v) {
+  if (v == null) return null;
+  const s = String(v).trim();
+  if (!s) return null;
+  const compact = s.replace(/\s+/g, '');
+  // 표기 변형 통합: "임직원자녀 전형A" = "임직원자녀 전형 A" = "임직원 자녀 전형A"
+  if (/(임직원).*자녀.*A/.test(compact)) return '임직원자녀A';
+  if (/(임직원).*자녀.*B/.test(compact)) return '임직원자녀B';
+  if (/(사회통합)/.test(compact)) return '사회통합';
+  if (/(미래인재)/.test(compact)) return '미래인재';
+  if (/(특례입학|특례.*대상)/.test(compact)) return '특례입학';
+  if (/(국가유공)/.test(compact)) return '국가유공';
+  return s;  // 알 수 없는 전형은 원본 유지 (실수 방지)
+}
+
+// 시·군 단위 정규화. "충청남도 천안시 동남구 ..." → "천안". 매칭 실패 시 첫 ~10자 유지.
+const REGION_PATTERN = /(천안|아산|서산|당진|예산|홍성|보령|공주|논산|계룡|금산|부여|서천|청양|태안|세종|대전|용인|기흥|수원|평택|안성|오산|화성|성남|분당|판교|광명|고양|일산|부천|안양|군포|시흥|인천|서울|광주|대구|울산|부산|제주|춘천|강릉|원주|전주|군산|익산|순천|여수|목포|포항|구미|경주|안동|진주|창원|김해|양산|검정고시)/;
+
+function normalizeRegion(v) {
+  if (v == null) return null;
+  const s = String(v).trim();
+  if (!s) return null;
+  const m = s.match(REGION_PATTERN);
+  if (m) return m[1];
+  return s.length > 10 ? s.slice(0, 10) : s;
+}
+
+// "(N기)" 형식의 시트명에서 기수 번호 추출
+function extractKisuFromSheetName(name) {
+  const m = String(name || '').match(/\((\d+)\s*기/);
+  return m ? +m[1] : null;
+}
+
+// 학년도 추출 (시트명 "2026학년도(13기)" → 2026). 없으면 SCHOOL_KISU_BASELINE 기준 계산.
+function extractYearFromSheetName(name, kisu) {
+  const m = String(name || '').match(/(20\d{2})\s*학년도/);
+  if (m) return +m[1];
+  if (kisu != null) return SCHOOL_KISU_BASELINE.year + (kisu - SCHOOL_KISU_BASELINE.kisu);
+  return null;
+}
+
+// 주민번호/생년월일에서 YYYY-MM-DD 형태 추출 (동명이인 매칭 시 보조 키로 사용)
+function extractBirthFromJumin(juminOrBirth) {
+  if (juminOrBirth == null) return null;
+  const s = String(juminOrBirth).replace(/[^\d]/g, '');
+  if (s.length >= 8) {
+    // 8자리 이상이면 앞 8자리가 YYYYMMDD
+    const y = +s.slice(0, 4), mo = +s.slice(4, 6), d = +s.slice(6, 8);
+    if (y >= 1990 && y <= 2030 && mo >= 1 && mo <= 12 && d >= 1 && d <= 31) {
+      return `${y}-${String(mo).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    }
+  }
+  if (s.length >= 6) {
+    // 6자리면 YYMMDD — 주민번호 뒷자리 첫 글자(성별 코드)로 1900/2000 분기
+    const yy = s.slice(0, 2), mo = +s.slice(2, 4), d = +s.slice(4, 6);
+    if (mo >= 1 && mo <= 12 && d >= 1 && d <= 31) {
+      // 6자리만 있으면 정확한 세기 모름 — 일단 YY로 보존
+      return `${yy}-${String(mo).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    }
+  }
+  return null;
+}
+
+// 메타/요약 행 판별. 짧은 한글 키워드("합계","총합","남자","여자","소계","%포함") 일 때만 제외.
+// 학생 이름과의 충돌 방지를 위해 4자 이하 + 키워드 정확 일치만 차단.
+function isFreshmanMetaRow(name) {
+  if (!name) return true;
+  const nm = String(name).trim();
+  if (!nm) return true;
+  if (nm.length > 12) return true;  // 너무 긴 텍스트는 데이터 행 아님
+  const META = new Set(['합계','총합','총계','소계','전체','남자','여자','남','여','%']);
+  if (META.has(nm)) return true;
+  if (/^\d+$/.test(nm)) return true;       // 숫자만
+  if (/^[\.\-\=\s]+$/.test(nm)) return true; // 구분선
+  return false;
+}
+
+/**
+ * 신입생 자료 워크북을 파싱해 record 배열 + 진단 정보를 반환.
+ * 모의고사 파서와 격리된 별도 진입점. state는 호출자가 갱신.
+ *
+ * @param {File} file - 사용자가 선택한 .xlsx 파일
+ * @returns {Promise<{records: Object[], diagnostics: Object[]}>}
+ */
+async function parseFreshmanWorkbook(file) {
+  const data = await new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = e => resolve(e.target.result);
+    r.onerror = reject;
+    r.readAsArrayBuffer(file);
+  });
+  const wb = XLSX.read(data, { type: 'array', cellDates: false });
+
+  const records = [];
+  const diagnostics = [];
+
+  for (const sheetName of wb.SheetNames) {
+    // 숨김 시트 자동 제외 (사용자가 숨겨둔 분석/참조 시트는 입력 대상 아님)
+    const sheetMeta = wb.Workbook?.Sheets?.find(s => s.name === sheetName);
+    const isHidden = sheetMeta && (sheetMeta.Hidden === 1 || sheetMeta.Hidden === 2);
+    if (isHidden) {
+      diagnostics.push({ sheet: sheetName, status: 'hidden-skipped', kisu: null, parsed: 0 });
+      continue;
+    }
+
+    const kisu = extractKisuFromSheetName(sheetName);
+    if (kisu == null) {
+      diagnostics.push({ sheet: sheetName, status: 'no-kisu-skipped', kisu: null, parsed: 0,
+        note: '시트명에 "(N기)" 패턴 없음 — 기수 시트 아님으로 판단' });
+      continue;
+    }
+
+    const ws = wb.Sheets[sheetName];
+    const matrix = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+    if (!matrix.length) {
+      diagnostics.push({ sheet: sheetName, status: 'empty', kisu, parsed: 0 });
+      continue;
+    }
+
+    // 헤더 행 = matrix[0] (신입생 자료는 1행 헤더 형태)
+    const headers = matrix[0];
+    const colIdx = {};
+    const detectedColumns = {};
+    for (const [key, cands] of Object.entries(FRESHMAN_COL_CANDIDATES)) {
+      const i = findFreshmanCol(headers, cands);
+      colIdx[key] = i;
+      if (i >= 0) detectedColumns[key] = String(headers[i] ?? '').trim();
+    }
+
+    if (colIdx.name < 0) {
+      diagnostics.push({
+        sheet: sheetName, status: 'no-name-col-skipped', kisu, parsed: 0,
+        detectedColumns, headers: headers.slice(0, 30).map(String),
+        note: '필수 컬럼(성명) 미발견',
+      });
+      continue;
+    }
+
+    const year = extractYearFromSheetName(sheetName, kisu);
+
+    // 카운터: 누락 원인 추적
+    let parsed = 0, skippedMeta = 0, skippedNoGender = 0, skippedDuplicate = 0;
+    const seenInSheet = new Set();  // 시트 내 중복(동일 학번 또는 동일 성명+성별) 제거
+
+    for (let r = 1; r < matrix.length; r++) {
+      const row = matrix[r] || [];
+      const nameRaw = row[colIdx.name];
+      if (isFreshmanMetaRow(nameRaw)) { skippedMeta++; continue; }
+
+      const gender = colIdx.gender >= 0 ? normalizeFreshmanGender(row[colIdx.gender]) : null;
+      // 성별이 없으면 (메타 행 가능성 + 데이터 품질) — 일단 카운트하되 record는 생성 (gender=null 허용)
+      // 신뢰도 정책: 성별 누락은 record 포함하되 gender:null로 표시. 분석 시 "성별 미상" 카테고리.
+      if (!gender) skippedNoGender++;
+
+      const studentId6 = colIdx.studentId6 >= 0 ? String(row[colIdx.studentId6] ?? '').trim() : '';
+      const jumin = colIdx.jumin >= 0 ? row[colIdx.jumin] : (colIdx.birthDate >= 0 ? row[colIdx.birthDate] : null);
+      const birthDate = extractBirthFromJumin(jumin);
+
+      // 중복 키: 학번이 있으면 학번 우선, 없으면 (성명+생년월일+성별)
+      const dupKey = studentId6 ? `id:${studentId6}` : `nbg:${String(nameRaw).trim()}|${birthDate || ''}|${gender || ''}`;
+      if (seenInSheet.has(dupKey)) { skippedDuplicate++; continue; }
+      seenInSheet.add(dupKey);
+
+      const rec = {
+        kisu,
+        year,
+        sheetName,
+        studentId6: studentId6 || null,
+        receiptNo: colIdx.receiptNo >= 0 ? String(row[colIdx.receiptNo] ?? '').trim() || null : null,
+        examNo: colIdx.examNo >= 0 ? String(row[colIdx.examNo] ?? '').trim() || null : null,
+        name: String(nameRaw).trim(),
+        romanizedName: colIdx.romanizedName >= 0 ? String(row[colIdx.romanizedName] ?? '').trim() || null : null,
+        gender: gender,  // 정규화된 '남'/'여'/null
+        birthDate,       // 'YYYY-MM-DD' 또는 'YY-MM-DD' (보조 매칭 키)
+        admissionType: colIdx.admissionType >= 0 ? normalizeAdmissionType(row[colIdx.admissionType]) : null,
+        admissionTypeRaw: colIdx.admissionType >= 0 ? String(row[colIdx.admissionType] ?? '').trim() || null : null,
+        middleSchool: colIdx.middleSchool >= 0 ? String(row[colIdx.middleSchool] ?? '').trim() || null : null,
+        region: colIdx.region >= 0 ? normalizeRegion(row[colIdx.region]) : null,
+        regionRaw: colIdx.region >= 0 ? String(row[colIdx.region] ?? '').trim() || null : null,
+        address: colIdx.address >= 0 ? String(row[colIdx.address] ?? '').trim() || null : null,
+        _sourceRow: r + 1,  // 디버그용 (1-based row in original sheet)
+      };
+      records.push(rec);
+      parsed++;
+    }
+
+    diagnostics.push({
+      sheet: sheetName, status: 'ok', kisu, year,
+      parsed,
+      skippedMeta, skippedNoGender, skippedDuplicate,
+      totalRows: matrix.length - 1,
+      detectedColumns,
+      missingCols: Object.entries(colIdx).filter(([_, v]) => v < 0).map(([k]) => k),
+    });
+  }
+
+  return { records, diagnostics };
+}
+
+/* 임시 검증 진입점 (a-1 단계 — 정식 UI는 a-2에서 추가).
+   파일 선택 → 파싱 → 콘솔 + 토스트로 결과 표시. state도 갱신하여 a-2에서 활용 가능. */
+async function freshmanParserTest() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.xlsx,.xls';
+  input.style.display = 'none';
+  document.body.appendChild(input);
+  input.onchange = async () => {
+    const file = input.files?.[0];
+    document.body.removeChild(input);
+    if (!file) return;
+    LoadingOverlay.show('신입생 자료 파싱 중', file.name);
+    try {
+      const t0 = performance.now();
+      const { records, diagnostics } = await parseFreshmanWorkbook(file);
+      const dt = (performance.now() - t0).toFixed(0);
+      // state에 임시 보관 (a-2에서 정식 UI가 활용)
+      state.freshmanData = records;
+      state.freshmanFiles = [{
+        file, parsedAt: Date.now(),
+        sheetCount: diagnostics.filter(d => d.status === 'ok').length,
+        recordCount: records.length,
+        diagnostics,
+      }];
+      // 콘솔 자세한 출력
+      console.group(`[신입생 파서 테스트] ${file.name} (${dt}ms)`);
+      console.log(`총 인원: ${records.length.toLocaleString()}명`);
+      console.table(diagnostics);
+      console.log('첫 3건 샘플:', records.slice(0, 3));
+      console.log('전형 분포:', records.reduce((m, r) => { const k = r.admissionType || '(미상)'; m[k] = (m[k]||0)+1; return m; }, {}));
+      console.log('지역 TOP 10:', Object.entries(records.reduce((m, r) => { const k = r.region || '(미상)'; m[k] = (m[k]||0)+1; return m; }, {})).sort((a,b) => b[1] - a[1]).slice(0, 10));
+      console.log('기수별 인원:', records.reduce((m, r) => { const k = `${r.kisu}기`; m[k] = (m[k]||0)+1; return m; }, {}));
+      console.groupEnd();
+      // 토스트 요약
+      const okSheets = diagnostics.filter(d => d.status === 'ok').length;
+      const totalSheets = diagnostics.length;
+      const skipNoGender = diagnostics.reduce((s, d) => s + (d.skippedNoGender || 0), 0);
+      toast(
+        '신입생 파서 테스트 완료',
+        `${records.length.toLocaleString()}명 / 시트 ${okSheets}/${totalSheets}개 인식 (성별누락 ${skipNoGender}건). 자세한 내용은 콘솔(F12) 확인`,
+        'success', 8000
+      );
+    } catch (e) {
+      console.error('[freshmanParserTest]', e);
+      toast('파서 실패', e.message || String(e), 'danger');
+    } finally {
+      LoadingOverlay.hide();
+    }
+  };
+  input.click();
 }
 
 async function processUploadedFiles() {
@@ -13956,6 +14273,7 @@ const commandPaletteCommands = () => {
     { id: 'chart-studio', section: '내 차트', icon: 'chart', title: '차트 스튜디오 열기', sub: '엑셀 수준 16종 차트 — bar/line/pie/scatter/box/heatmap/treemap/...', hint: '', action: () => openChartStudio(), requireData: true },
     { id: 'chart-lib',    section: '내 차트', icon: 'folder', title: '차트 라이브러리 열기', sub: '저장된 차트 관리 · 보고서 포함 토글', hint: '', action: openChartLibrary, requireData: true },
     { id: 'chart-cohort-batch', section: '내 차트', icon: 'sparkle', title: '기수별 비교 차트 6장 일괄 생성', sub: '국·수·영·사탐·과탐·한국사 — 100% 누적 가로 막대', hint: '', action: createCohortComparisonCharts, requireData: true },
+    { id: 'freshman-parser-test', section: '신입생 분석', icon: 'sparkle', title: '신입생 자료 파서 테스트 (a-1)', sub: '13개 기수 시트 자동 인식 검증 — 결과는 콘솔(F12) + 토스트', hint: '', action: freshmanParserTest, requireData: false },
 
     // === 데이터 품질·매핑 ===
     { id: 'dq-open',  section: '데이터 품질', icon: 'help', title: '데이터 품질 보고서', sub: '결측치 · 이상치 · 일관성 위반 점검', hint: '', action: openDataQuality, requireData: true },
