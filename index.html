@@ -3541,8 +3541,13 @@ svg { display: block; }
       <span style="color: var(--text-muted); font-size: 12px; margin-left: auto;">저장한 차트는 보고서(Excel/PPT)에 포함할 수 있습니다</span>
     </div>
     <div id="chartLibraryBody" style="max-height: 75vh; overflow-y: auto; padding: 16px 18px;"></div>
-    <div style="padding: 12px 18px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; gap: 6px; background: var(--bg-hover);">
-      <button class="btn btn-secondary btn-sm" onclick="openChartStudio()">+ 새 차트 만들기</button>
+    <div style="padding: 12px 18px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; gap: 6px; background: var(--bg-hover); flex-wrap:wrap;">
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="btn btn-secondary btn-sm" onclick="openChartStudio()">+ 새 차트 만들기</button>
+        <button class="btn btn-primary btn-sm" onclick="createCohortComparisonCharts()" title="국·수·영·사탐·과탐·한국사 — 학년도별 등급 분포(100% 누적 가로 막대) 6장을 한 번에 생성">
+          📊 기수별 비교 6장 일괄 생성
+        </button>
+      </div>
       <button class="btn btn-secondary btn-sm" onclick="closeChartLibrary()">닫기</button>
     </div>
   </div>
@@ -5512,6 +5517,7 @@ function defaultChartStudioConfig() {
     binCount: 20,      // histogram bin count
     sortBy: 'value',   // 'label' | 'value' | 'none'
     title: '',
+    subjectFilter: '', // 단일 과목 필터 (preset에서 사용; '' = 전체 과목)
   };
 }
 
@@ -5650,6 +5656,10 @@ function chartStudioRecords() {
 /* Build Plotly trace+layout for the current studio config (or any saved config). */
 function buildPlotlyChart(cfg, records) {
   records = records || (state.parsedData || []);
+  // 단일 과목 필터 (cfg.subjectFilter): 기수별 비교 같은 preset에서 사용
+  if (cfg.subjectFilter) {
+    records = records.filter(r => (r.subjectGroup || r.subject) === cfg.subjectFilter);
+  }
   const typeMeta = CHART_TYPES.find(t => t.key === cfg.type) || CHART_TYPES[0];
   const xLabel = (CHART_AXIS_OPTIONS.find(o => o.key === cfg.x) || {}).label || cfg.x;
   const yLabel = (CHART_AXIS_OPTIONS.find(o => o.key === cfg.y) || {}).label || cfg.y;
@@ -5922,6 +5932,56 @@ async function saveCurrentChart() {
   saveCustomCharts();
   try { renderSidebar(); } catch (e) {}
   toast('내 차트로 저장됨', `"${cfg.name.trim()}" — 보고서 옵션에서 포함 여부 조정 가능`, 'success');
+}
+
+/* 엑셀 보고서의 '기수별 비교' 차트와 동일한 형태(과목별 100% 가로 누적)를
+   6과목(국·수·영·사탐·과탐·한국사) 한 번에 생성하여 내 차트 라이브러리에 저장.
+   각 차트는 학년도(=기수)별 등급 분포를 100% 누적 가로 막대로 시각화하고
+   막대 위에 % 라벨(4% 이상)을 표시. 보고서(PPT/Excel 부록)에 자동 포함됨. */
+async function createCohortComparisonCharts() {
+  if (!state.parsedData || state.parsedData.length === 0) {
+    toast('데이터 없음', '먼저 분석을 시작하세요', 'warning');
+    return;
+  }
+  const REPORT_SUBJECTS = ['국어','수학','영어','사탐','과탐','한국사'];
+  const subjectsInData = new Set(state.parsedData.map(r => r.subjectGroup || r.subject).filter(Boolean));
+  const subjectsToCreate = REPORT_SUBJECTS.filter(s => subjectsInData.has(s));
+  if (subjectsToCreate.length === 0) {
+    toast('과목 없음', '국·수·영·사탐·과탐·한국사 데이터가 없습니다', 'warning');
+    return;
+  }
+  state.customCharts = state.customCharts || [];
+  // 기존 preset 차트는 제거하고 다시 생성 (중복 방지 + 최신 데이터 반영)
+  state.customCharts = state.customCharts.filter(c => c.config?.preset !== 'cohort-comparison');
+  let added = 0;
+  for (const subj of subjectsToCreate) {
+    const cfg = Object.assign(defaultChartStudioConfig(), {
+      preset: 'cohort-comparison',
+      type: 'barh-100',
+      x: 'year',
+      y: 'rawScore',
+      group: 'grade9',
+      metric: 'count',
+      scope: 'all',
+      subjectFilter: subj,
+      sortBy: 'label',
+      title: `${subj} — 학년도별 등급 분포 (100% 누적)`,
+      name: `${subj} 기수별 비교`,
+      desc: '학년도별 등급 분포 — 막대 길이 동일(100%)',
+    });
+    state.customCharts.unshift({
+      id: 'chart_cohort_' + subj + '_' + Date.now().toString(36),
+      name: cfg.name, desc: cfg.desc,
+      config: JSON.parse(JSON.stringify(cfg)),
+      thumb: null, includeInReport: true,
+      createdAt: new Date().toISOString(),
+    });
+    added++;
+  }
+  saveCustomCharts();
+  toast('기수별 비교 차트 생성 완료', `${added}개 과목 차트가 내 차트 라이브러리에 추가되었습니다`, 'success');
+  try { renderSidebar(); } catch (e) {}
+  try { if (document.getElementById('chartLibraryModal')?.classList.contains('show')) renderChartLibrary(); } catch (e) {}
 }
 
 async function exportChartStudioPng() {
@@ -13895,6 +13955,7 @@ const commandPaletteCommands = () => {
     // === 차트 ===
     { id: 'chart-studio', section: '내 차트', icon: 'chart', title: '차트 스튜디오 열기', sub: '엑셀 수준 16종 차트 — bar/line/pie/scatter/box/heatmap/treemap/...', hint: '', action: () => openChartStudio(), requireData: true },
     { id: 'chart-lib',    section: '내 차트', icon: 'folder', title: '차트 라이브러리 열기', sub: '저장된 차트 관리 · 보고서 포함 토글', hint: '', action: openChartLibrary, requireData: true },
+    { id: 'chart-cohort-batch', section: '내 차트', icon: 'sparkle', title: '기수별 비교 차트 6장 일괄 생성', sub: '국·수·영·사탐·과탐·한국사 — 100% 누적 가로 막대', hint: '', action: createCohortComparisonCharts, requireData: true },
 
     // === 데이터 품질·매핑 ===
     { id: 'dq-open',  section: '데이터 품질', icon: 'help', title: '데이터 품질 보고서', sub: '결측치 · 이상치 · 일관성 위반 점검', hint: '', action: openDataQuality, requireData: true },
