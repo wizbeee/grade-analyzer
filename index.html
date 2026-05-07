@@ -8264,6 +8264,8 @@ async function startAnalysis() {
     document.getElementById('exportDropdown').style.display = '';
     document.getElementById('breadcrumbCurrent').textContent =
       state.analysisMode === 'group' ? '집단 분석 결과' : '개인 분석 결과';
+    // 사이드바를 분석 모드 메뉴(보고서/필터/내 차트/내 그룹 등)로 전환
+    try { renderSidebar(); } catch (e) { console.warn('[sidebar]', e); }
     toast('분석 완료', `${state.parsedData.length.toLocaleString()}건의 데이터를 분석했습니다`, 'success');
   } catch (err) {
     console.error(err);
