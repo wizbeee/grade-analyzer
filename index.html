@@ -4730,6 +4730,22 @@ function renderSidebarResults() {
       `).join('')}
     </div>
 
+    ${state.matchingResult && state.matchingResult.matched.length > 0 ? `
+    <div class="sidebar-section">
+      <div class="sidebar-section-label" style="display:flex;align-items:center;gap:6px">
+        <span>🎓 결합 분석</span>
+        <span style="margin-left:auto;font-weight:400;color:var(--text-subtle);font-size:10px">${state.matchingResult.stats.matchedCount.toLocaleString()}명</span>
+      </div>
+      <button class="sidebar-item ${state.currentTab === 'g-fr-school' ? 'active' : ''}" data-tab="g-fr-school" onclick="switchTab('g-fr-school')">
+        <span style="font-size:14px;width:18px;display:inline-block">🏫</span>
+        <span class="sidebar-item-label">출신중별 성적</span>
+      </button>
+      <button class="sidebar-item" onclick="openMatchingResult()" title="매칭률·미매칭자·동명이인 명단">
+        <span style="font-size:14px;width:18px;display:inline-block">🔗</span>
+        <span class="sidebar-item-label">매칭 결과 보기</span>
+      </button>
+    </div>` : ''}
+
     <div class="sidebar-section">
       <div class="sidebar-section-label">탐색</div>
       <button class="sidebar-item" onclick="openStudentSearch()" title="Ctrl+/ — 이름/학번/반-번호로 검색">
@@ -9190,8 +9206,9 @@ async function startAnalysis() {
     return;
   }
 
-  // 둘 다 있는 경우 (b-2 매칭 + b-3 결합 분석): 매칭 실행 후 신입생 모드로 진입.
-  // 결합 분석 탭들(출신중·전형·지역별 모의고사 성적)이 신입생 모드 사이드바에 활성화됨.
+  // 둘 다 있는 경우 (b-2 매칭 + b-3 결합 분석):
+  // 매칭만 실행하고 분석 모드는 모의고사(group/personal 자동결정) 그대로 진행.
+  // 모의고사의 8개 분석 탭은 보존 + 사이드바에 '결합 분석' 섹션이 추가됨(매칭 있을 때).
   if (hasFreshman && hasMock) {
     try {
       const result = runFreshmanMatching(state.parsedData, state.freshmanData);
@@ -9201,32 +9218,14 @@ async function startAnalysis() {
       const tone = s.matchRate >= 0.85 ? 'success' : (s.matchRate >= 0.6 ? 'warning' : 'danger');
       toast(
         `매칭 ${pct}% (${s.matchedCount}/${s.totalStudents}명)`,
-        `결합 분석 탭에서 출신중·전형·지역별 성적 확인 가능. 미매칭 ${s.unmatchedCount}명 · 동명이인 ${s.ambiguousCount}건`,
+        `사이드바 '결합 분석' 섹션에서 출신중·전형·지역별 성적 확인 가능`,
         tone, 7000
       );
     } catch (e) {
       console.error('[runFreshmanMatching]', e);
       toast('매칭 실패', e.message || String(e), 'danger');
     }
-
-    // 신입생 모드로 진입 — 결합 분석 탭들 활성화
-    state.analysisMode = 'freshman';
-    LoadingOverlay.show('결합 분석 준비 중', `신입생 ${state.freshmanData.length.toLocaleString()}명 + 모의고사 ${state.parsedData.length.toLocaleString()}건...`);
-    await new Promise(r => setTimeout(r, 60));
-    try {
-      renderResults();
-      document.getElementById('uploadSection').classList.add('hidden');
-      document.getElementById('resultsSection').classList.remove('hidden');
-      document.getElementById('exportDropdown').style.display = '';
-      document.getElementById('breadcrumbCurrent').textContent = '신입생 + 모의고사 결합 분석';
-      try { renderSidebar(); } catch (e) { console.warn('[sidebar]', e); }
-    } catch (err) {
-      console.error('[startAnalysis-combined]', err);
-      toast('분석 오류', err.message || String(err), 'danger');
-    } finally {
-      LoadingOverlay.hide();
-    }
-    return;
+    // 모의고사 분석 흐름으로 그대로 진행 (이 if 블록을 빠져나가 아래 기존 분기로 이어짐)
   }
 
   if (!hasMock) {
@@ -9882,6 +9881,9 @@ function renderGroupResultsWith(data) {
     <div class="tab-content" id="tab-g-trend" role="tabpanel" aria-labelledby="tabbtn-g-trend">${renderGroupTrend(data)}</div>
     <div class="tab-content" id="tab-g-cross" role="tabpanel" aria-labelledby="tabbtn-g-cross"><div id="crossTabContent"></div></div>
     <div class="tab-content" id="tab-g-student" role="tabpanel" aria-labelledby="tabbtn-g-student">${renderGroupStudent(data)}</div>
+    ${state.matchingResult && state.matchingResult.matched.length > 0 ? `
+    <div class="tab-content" id="tab-g-fr-school" role="tabpanel" aria-labelledby="tabbtn-g-fr-school">${renderFreshmanSchoolTab(getFreshmanFilteredData())}</div>
+    ` : ''}
   `;
 
   state.currentTab = 'g-summary';
