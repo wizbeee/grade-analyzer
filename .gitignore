@@ -11,3 +11,6 @@ Desktop.ini
 *.tmp
 *.bak
 ~$*
+
+# Standalone build output (regenerated via `python build_standalone.py`)
+dist/
