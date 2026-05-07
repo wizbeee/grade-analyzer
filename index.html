@@ -3912,8 +3912,7 @@ let state = {
   drilldownState: null,     // { records, columns, title } — for CSV export
   customCharts: [],         // [{ id, name, desc, type, config, thumb, includeInReport, createdAt }]
   chartStudio: null,        // Live editor state — { name, type, x, y, group, agg, metric, scope, ... }
-  // ── 신입생 분석 모드 (단계 a-1: 파서 + 데이터 모델, a-2: UI 통합) ──
-  uploadMode: 'mock',       // 업로드 화면 상태: 'mock' (모의고사) | 'freshman' (신입생 자료)
+  // ── 신입생 분석 모드 (a-1: 파서, a-2: UI 통합, b-1: 통합 업로더, b-2: 매칭) ──
   freshmanData: [],         // [{ kisu, year, name, gender, admissionType, middleSchool, region, ... }]
   freshmanFiles: [],        // [{ file, parsedAt, sheetCount, recordCount, diagnostics }]
   freshmanCurrentTab: 'summary',  // 신입생 모드 탭 상태
@@ -3925,6 +3924,7 @@ let state = {
     middleSchools: [],
     genders: [],
   },
+  matchingResult: null,     // b-2 매칭 결과: { matched, unmatched, ambiguous, stats, runAt }
 };
 
 /* ============================================================
@@ -8220,6 +8220,329 @@ async function parseFreshmanWorkbook(file) {
 
 /* 임시 검증 진입점 (a-1 단계 — 정식 UI는 a-2에서 추가).
    파일 선택 → 파싱 → 콘솔 + 토스트로 결과 표시. state도 갱신하여 a-2에서 활용 가능. */
+/* ============================================================
+   동명이인 매칭 (b-2) — 모의고사 record ↔ 신입생 record
+   매칭 키 우선순위 (신뢰도 내림차순):
+     1. 학번 정확 일치 (가장 신뢰도 높음 — 학교 학번이 입학 시 부여되므로)
+     2. (기수, 성명, 생년월일) — 신입생에 생년월일 있고 일치
+     3. (기수, 성명, 성별) — 폴백 (신입생에 성별만 있을 때)
+     4. (기수, 성명) — 후보 1명일 때만 (동명이인 없을 때)
+   모호한 경우(여러 후보 + 좁힐 정보 없음)는 'ambiguous'로 분류 (자동 매칭하지 않음).
+   ============================================================ */
+
+// 모의고사 학년도 + 학년 → 입학 학년도 → 기수
+function deriveKisuFromMockRecord(rec) {
+  // record에 cohort('8기' 등)가 있으면 우선 사용
+  if (rec.cohort) {
+    const m = String(rec.cohort).match(/(\d+)/);
+    if (m) return +m[1];
+  }
+  if (rec.year == null || rec.grade == null) return null;
+  const enrollmentYear = Number(rec.year) - (Number(rec.grade) - 1);
+  return SCHOOL_KISU_BASELINE.kisu + (enrollmentYear - SCHOOL_KISU_BASELINE.year);
+}
+
+// 이름 정규화 — 공백/특수문자 제거 후 비교 (예: "강고은" === "강고은 ")
+function normalizeNameForMatch(name) {
+  return String(name || '').replace(/\s+/g, '').trim();
+}
+
+// 모의고사 record의 학생 식별자 — 같은 학생의 여러 회차/년도 record를 한 번만 매칭하기 위함
+function mockStudentKey(rec) {
+  const kisu = deriveKisuFromMockRecord(rec);
+  if (kisu == null) return null;
+  // (기수, 학생명) 학교 내에서 한 학생을 표현하는 안정 키
+  return `${kisu}|${normalizeNameForMatch(rec.studentName)}|${rec.className || ''}|${rec.studentNo || ''}`;
+}
+
+/**
+ * 모의고사 records와 신입생 records를 매칭하여 결과 + 통계 반환.
+ * 매칭된 모의고사 학생 1명에게 신입생 정보(출신중·전형·지역 등)를 attach.
+ * 다중 회차/학년 모의고사 record는 학생별로 그룹화하여 한 번 매칭 후 모든 record에 동일 freshman 정보 적용.
+ */
+function runFreshmanMatching(mockRecords, freshmanRecords) {
+  // ── 1. 신입생 인덱스 구축 ──
+  const idxByStudentId = new Map();      // 학번(6자리) → freshmanRec
+  const idxByKisuName = new Map();       // `${kisu}|${normName}` → [freshmanRec...]
+  for (const fr of freshmanRecords) {
+    if (fr.studentId6) {
+      const key = String(fr.studentId6);
+      if (!idxByStudentId.has(key)) idxByStudentId.set(key, fr);
+    }
+    const kn = `${fr.kisu}|${normalizeNameForMatch(fr.name)}`;
+    if (!idxByKisuName.has(kn)) idxByKisuName.set(kn, []);
+    idxByKisuName.get(kn).push(fr);
+  }
+
+  // ── 2. 모의고사 학생 그룹화 (같은 학생의 여러 record는 한 번에 매칭) ──
+  const studentGroups = new Map();  // mockStudentKey → { sample: mockRec, allRecords: [...] }
+  for (const mr of mockRecords) {
+    const key = mockStudentKey(mr);
+    if (!key) continue;
+    if (!studentGroups.has(key)) studentGroups.set(key, { sample: mr, allRecords: [] });
+    studentGroups.get(key).allRecords.push(mr);
+  }
+
+  // ── 3. 학생 단위 매칭 ──
+  const matched = [];      // { mockKey, mockSample, freshmanRec, status, confidence }
+  const unmatched = [];    // { mockKey, mockSample, reason }
+  const ambiguous = [];    // { mockKey, mockSample, candidates }
+
+  // 매칭 통계 (단계별)
+  const byStatus = { 'student-id': 0, 'name-birth-kisu': 0, 'name-gender-kisu': 0, 'name-kisu-unique': 0 };
+
+  for (const [mockKey, group] of studentGroups) {
+    const mr = group.sample;
+    const kisu = deriveKisuFromMockRecord(mr);
+    const normName = normalizeNameForMatch(mr.studentName);
+
+    // (1) 학번 정확 일치 시도 — 모의고사 record에 학번이 있으면
+    // 모의고사 record의 학번 형식: studentId('1_3_15') 또는 studentNo('15') 만 있는 경우 → 신입생 학번과 직접 매칭은 어려움
+    // 신입생 학번(예: '10101')과 비교 가능한 형태는 (학년-반-번호) 합성. 학교마다 학번 형식이 다르므로
+    // 일단 정확 매칭은 (학번이 같은 형식인지) 검사 후 시도.
+    let mockStudentId = null;
+    if (mr.grade != null && mr.className != null && mr.studentNo != null) {
+      // 신입생 학번 형식 추정: 1자리 학년 + 2자리 반(0-pad) + 2자리 번호(0-pad). 예: 학년1, 반1, 번호1 → '10101'
+      const cls = String(mr.className).padStart(2, '0');
+      const no = String(mr.studentNo).padStart(2, '0');
+      mockStudentId = `${mr.grade}${cls}${no}`;
+    }
+    if (mockStudentId && idxByStudentId.has(mockStudentId)) {
+      // 동일 기수 검증 — 학번이 우연히 일치하는 다른 기수 학생 방지
+      const candidate = idxByStudentId.get(mockStudentId);
+      if (kisu == null || candidate.kisu === kisu) {
+        matched.push({ mockKey, mockSample: mr, freshmanRec: candidate, status: 'student-id', confidence: 0.98, allRecords: group.allRecords });
+        byStatus['student-id']++;
+        continue;
+      }
+    }
+
+    // (2) (기수, 성명) 후보 조회
+    const kn = `${kisu}|${normName}`;
+    const candidates = idxByKisuName.get(kn) || [];
+
+    if (candidates.length === 0) {
+      unmatched.push({ mockKey, mockSample: mr, reason: 'no-candidate' });
+      continue;
+    }
+    if (candidates.length === 1) {
+      // 후보 1명 → 동명이인 없으니 매칭
+      matched.push({ mockKey, mockSample: mr, freshmanRec: candidates[0], status: 'name-kisu-unique', confidence: 0.92, allRecords: group.allRecords });
+      byStatus['name-kisu-unique']++;
+      continue;
+    }
+
+    // 후보 다수 → 좁히기 시도
+    // (2-a) 생년월일로 좁힘 — 모의고사에 birthDate가 있으면 (현재 모델엔 없음, 추후 확장)
+    // mr.birthDate는 현재 데이터 모델에 없음. 신입생 자료에만 있음.
+    // (2-b) 성별로 좁힘 — 모의고사에 gender가 있고 신입생도 있을 때
+    const mrGender = mr.gender;
+    if (mrGender) {
+      const filtered = candidates.filter(c => c.gender === mrGender);
+      if (filtered.length === 1) {
+        matched.push({ mockKey, mockSample: mr, freshmanRec: filtered[0], status: 'name-gender-kisu', confidence: 0.85, allRecords: group.allRecords });
+        byStatus['name-gender-kisu']++;
+        continue;
+      }
+    }
+    // (2-c) 학년/반/번호로 좁힘 (학번 부분일치)
+    if (mockStudentId) {
+      const filtered = candidates.filter(c => c.studentId6 && String(c.studentId6) === mockStudentId);
+      if (filtered.length === 1) {
+        matched.push({ mockKey, mockSample: mr, freshmanRec: filtered[0], status: 'name-id-kisu', confidence: 0.95, allRecords: group.allRecords });
+        byStatus['student-id']++;
+        continue;
+      }
+    }
+
+    // 여전히 모호 → ambiguous
+    ambiguous.push({ mockKey, mockSample: mr, candidates });
+  }
+
+  // ── 4. 매칭된 학생의 모든 record에 freshman 프로필 attach ──
+  for (const m of matched) {
+    const profile = {
+      kisu: m.freshmanRec.kisu,
+      gender: m.freshmanRec.gender,
+      admissionType: m.freshmanRec.admissionType,
+      middleSchool: m.freshmanRec.middleSchool,
+      region: m.freshmanRec.region,
+      birthDate: m.freshmanRec.birthDate,
+      _matchStatus: m.status,
+      _matchConfidence: m.confidence,
+    };
+    for (const rec of m.allRecords) {
+      rec.freshman = profile;
+    }
+  }
+
+  // ── 5. 통계 ──
+  const totalStudents = studentGroups.size;
+  const matchRate = totalStudents > 0 ? matched.length / totalStudents : 0;
+  const byKisu = {};
+  for (const [_, group] of studentGroups) {
+    const k = deriveKisuFromMockRecord(group.sample);
+    if (k == null) continue;
+    if (!byKisu[k]) byKisu[k] = { total: 0, matched: 0 };
+    byKisu[k].total++;
+  }
+  for (const m of matched) {
+    const k = deriveKisuFromMockRecord(m.mockSample);
+    if (k != null && byKisu[k]) byKisu[k].matched++;
+  }
+
+  return {
+    matched, unmatched, ambiguous,
+    stats: {
+      totalStudents,
+      matchedCount: matched.length,
+      unmatchedCount: unmatched.length,
+      ambiguousCount: ambiguous.length,
+      matchRate,
+      byStatus,
+      byKisu,
+    },
+    runAt: Date.now(),
+  };
+}
+
+/* 매칭 결과 모달 — 매칭/미매칭/모호 명단 + 기수별 매칭률 */
+function openMatchingResult() {
+  const result = state.matchingResult;
+  if (!result) {
+    toast('매칭 결과 없음', '먼저 두 종류 자료를 모두 업로드 후 분석을 시작하세요', 'warning');
+    return;
+  }
+  let modal = document.getElementById('matchingResultModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'matchingResultModal';
+    modal.className = 'modal-overlay';
+    modal.onclick = (e) => { if (e.target === modal) closeMatchingResult(); };
+    document.body.appendChild(modal);
+  }
+  renderMatchingResultModal(modal, result);
+  modal.classList.add('show');
+}
+
+function closeMatchingResult() {
+  document.getElementById('matchingResultModal')?.classList.remove('show');
+}
+
+function renderMatchingResultModal(modal, result) {
+  const s = result.stats;
+  const kisuRows = Object.keys(s.byKisu).map(Number).sort((a, b) => a - b).map(k => {
+    const d = s.byKisu[k];
+    const pct = d.total ? (d.matched / d.total * 100).toFixed(1) : '-';
+    return `<tr>
+      <td style="padding:5px 10px"><strong>${k}기</strong></td>
+      <td style="padding:5px 10px;text-align:right">${d.matched}/${d.total}</td>
+      <td style="padding:5px 10px;text-align:right;color:${d.matched/d.total >= 0.85 ? 'var(--success,#16a34a)' : (d.matched/d.total >= 0.6 ? '#d97706' : 'var(--danger,#dc2626)')}">${pct}%</td>
+    </tr>`;
+  }).join('');
+  const unmatchedSample = result.unmatched.slice(0, 50);
+  const ambSample = result.ambiguous.slice(0, 50);
+  modal.innerHTML = `
+    <div class="modal" style="max-width:920px;width:96%;max-height:90vh;display:flex;flex-direction:column">
+      <div style="padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px">
+        <strong style="font-size:14px">🔗 신입생 ↔ 모의고사 매칭 결과</strong>
+        <span style="color:var(--text-muted);font-size:12px;margin-left:auto">${new Date(result.runAt).toLocaleString('ko-KR')}</span>
+        <button class="btn btn-ghost btn-sm" onclick="closeMatchingResult()" aria-label="닫기">✕</button>
+      </div>
+      <div style="overflow-y:auto;padding:16px 18px">
+
+        <!-- KPI -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(140px, 1fr));gap:10px;margin-bottom:16px">
+          <div class="kpi-card" style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:8px;padding:12px">
+            <div style="font-size:11px;color:var(--text-muted)">매칭률</div>
+            <div style="font-size:22px;font-weight:700;color:${s.matchRate >= 0.85 ? 'var(--success,#16a34a)' : (s.matchRate >= 0.6 ? '#d97706' : 'var(--danger,#dc2626)')}">${(s.matchRate * 100).toFixed(1)}%</div>
+          </div>
+          <div class="kpi-card" style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:8px;padding:12px">
+            <div style="font-size:11px;color:var(--text-muted)">매칭 성공</div>
+            <div style="font-size:22px;font-weight:700;color:var(--text)">${s.matchedCount.toLocaleString()}<span style="font-size:13px;color:var(--text-muted);font-weight:400">명</span></div>
+          </div>
+          <div class="kpi-card" style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:8px;padding:12px">
+            <div style="font-size:11px;color:var(--text-muted)">미매칭</div>
+            <div style="font-size:22px;font-weight:700;color:var(--text)">${s.unmatchedCount.toLocaleString()}<span style="font-size:13px;color:var(--text-muted);font-weight:400">명</span></div>
+          </div>
+          <div class="kpi-card" style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:8px;padding:12px">
+            <div style="font-size:11px;color:var(--text-muted)">동명이인 (모호)</div>
+            <div style="font-size:22px;font-weight:700;color:var(--text)">${s.ambiguousCount.toLocaleString()}<span style="font-size:13px;color:var(--text-muted);font-weight:400">명</span></div>
+          </div>
+        </div>
+
+        <!-- 매칭 단계별 -->
+        <div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:14px">
+          <div style="font-size:13px;font-weight:600;margin-bottom:6px">매칭 방법별 분포</div>
+          <div style="font-size:12.5px;color:var(--text-muted);display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px">
+            <div>학번 정확일치: <strong style="color:var(--text)">${s.byStatus['student-id'] || 0}</strong>건</div>
+            <div>이름+생년월일+기수: <strong style="color:var(--text)">${s.byStatus['name-birth-kisu'] || 0}</strong>건</div>
+            <div>이름+성별+기수: <strong style="color:var(--text)">${s.byStatus['name-gender-kisu'] || 0}</strong>건</div>
+            <div>이름+기수 (유일후보): <strong style="color:var(--text)">${s.byStatus['name-kisu-unique'] || 0}</strong>건</div>
+          </div>
+        </div>
+
+        <!-- 기수별 -->
+        <div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:14px">
+          <div style="font-size:13px;font-weight:600;margin-bottom:8px">기수별 매칭률</div>
+          <table style="width:100%;border-collapse:collapse;font-size:12.5px">
+            <thead><tr style="background:var(--bg-hover)">
+              <th style="padding:6px 10px;text-align:left">기수</th>
+              <th style="padding:6px 10px;text-align:right">매칭/전체</th>
+              <th style="padding:6px 10px;text-align:right">비율</th>
+            </tr></thead>
+            <tbody>${kisuRows || '<tr><td colspan="3" style="padding:8px;text-align:center;color:var(--text-muted)">데이터 없음</td></tr>'}</tbody>
+          </table>
+        </div>
+
+        <!-- 미매칭 명단 -->
+        ${unmatchedSample.length > 0 ? `
+        <div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:14px">
+          <div style="font-size:13px;font-weight:600;margin-bottom:8px">미매칭 학생 ${unmatchedSample.length}명${result.unmatched.length > 50 ? ` (전체 ${result.unmatched.length}명 중 처음 50명)` : ''}</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px">신입생 자료에서 같은 기수+이름을 찾지 못함. 신입생 자료 누락이거나 동기 외 학생일 수 있음.</div>
+          <div style="max-height:240px;overflow-y:auto;font-size:12.5px">
+            <table style="width:100%;border-collapse:collapse">
+              <thead style="position:sticky;top:0;background:var(--bg-hover)"><tr>
+                <th style="padding:6px 10px;text-align:left">기수</th>
+                <th style="padding:6px 10px;text-align:left">이름</th>
+                <th style="padding:6px 10px;text-align:left">학년/반/번호</th>
+                <th style="padding:6px 10px;text-align:left">학년도</th>
+              </tr></thead>
+              <tbody>
+                ${unmatchedSample.map(u => {
+                  const k = deriveKisuFromMockRecord(u.mockSample);
+                  return `<tr>
+                    <td style="padding:5px 10px">${k != null ? k + '기' : '-'}</td>
+                    <td style="padding:5px 10px">${escapeHtml(u.mockSample.studentName || '')}</td>
+                    <td style="padding:5px 10px;color:var(--text-muted)">${u.mockSample.grade}-${u.mockSample.className}-${u.mockSample.studentNo}</td>
+                    <td style="padding:5px 10px;color:var(--text-muted)">${u.mockSample.year || ''}</td>
+                  </tr>`;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>` : ''}
+
+        <!-- 동명이인 명단 -->
+        ${ambSample.length > 0 ? `
+        <div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:8px;padding:12px 14px">
+          <div style="font-size:13px;font-weight:600;margin-bottom:8px">동명이인 (자동 매칭 안 함) ${ambSample.length}건</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px">같은 기수에 같은 이름 학생이 여러 명 — 추가 정보(생년월일/성별/학번)로 좁히지 못함. 수동 매핑은 후속 단계에서 지원 예정.</div>
+          <div style="max-height:200px;overflow-y:auto;font-size:12.5px">
+            ${ambSample.map(a => `<div style="padding:5px 10px;border-bottom:1px solid var(--border-subtle, var(--border))">
+              <strong>${escapeHtml(a.mockSample.studentName)}</strong> (${deriveKisuFromMockRecord(a.mockSample)}기) — 후보 ${a.candidates.length}명
+            </div>`).join('')}
+          </div>
+        </div>` : ''}
+
+      </div>
+      <div style="padding:10px 18px;border-top:1px solid var(--border);text-align:right">
+        <button class="btn btn-secondary btn-sm" onclick="closeMatchingResult()">닫기</button>
+      </div>
+    </div>
+  `;
+}
+
 async function freshmanParserTest() {
   const input = document.createElement('input');
   input.type = 'file';
@@ -8864,14 +9187,24 @@ async function startAnalysis() {
     return;
   }
 
-  // 둘 다 있는 경우: b-1에서는 모의고사 분석을 시작하되, 신입생 자료 보유 안내.
-  // b-2(매칭) + b-3(결합 분석)에서 본격적으로 두 데이터를 결합하게 됨.
+  // 둘 다 있는 경우 (b-2): 자동 매칭 실행 후 freshman 프로필을 모의고사 record에 attach.
+  // b-3에서 출신중·전형·지역별 결합 분석에 활용.
   if (hasFreshman && hasMock) {
-    toast(
-      '신입생 자료 N명 함께 보유 중'.replace('N', state.freshmanData.length.toLocaleString()),
-      '결합 분석은 다음 단계(b-2 매칭, b-3 결합 분석)에서 활성화됩니다',
-      'info', 6000
-    );
+    try {
+      const result = runFreshmanMatching(state.parsedData, state.freshmanData);
+      state.matchingResult = result;
+      const s = result.stats;
+      const pct = (s.matchRate * 100).toFixed(1);
+      const tone = s.matchRate >= 0.85 ? 'success' : (s.matchRate >= 0.6 ? 'warning' : 'danger');
+      toast(
+        `매칭 ${pct}% (${s.matchedCount}/${s.totalStudents}명)`,
+        `미매칭 ${s.unmatchedCount}명 · 동명이인 ${s.ambiguousCount}건. 명령 팔레트에서 "매칭 결과"로 상세 확인`,
+        tone, 7000
+      );
+    } catch (e) {
+      console.error('[runFreshmanMatching]', e);
+      toast('매칭 실패', e.message || String(e), 'danger');
+    }
   }
 
   if (!hasMock) {
@@ -14832,6 +15165,7 @@ const commandPaletteCommands = () => {
     { id: 'chart-lib',    section: '내 차트', icon: 'folder', title: '차트 라이브러리 열기', sub: '저장된 차트 관리 · 보고서 포함 토글', hint: '', action: openChartLibrary, requireData: true },
     { id: 'chart-cohort-batch', section: '내 차트', icon: 'sparkle', title: '기수별 비교 차트 6장 일괄 생성', sub: '국·수·영·사탐·과탐·한국사 — 100% 누적 가로 막대', hint: '', action: createCohortComparisonCharts, requireData: true },
     { id: 'freshman-parser-test', section: '신입생 분석', icon: 'sparkle', title: '신입생 자료 파서 테스트 (a-1)', sub: '13개 기수 시트 자동 인식 검증 — 결과는 콘솔(F12) + 토스트', hint: '', action: freshmanParserTest, requireData: false },
+    { id: 'freshman-matching-result', section: '신입생 분석', icon: 'folder', title: '신입생 ↔ 모의고사 매칭 결과', sub: '매칭률 / 미매칭자 / 동명이인 명단 (b-2)', hint: '', action: openMatchingResult, requireData: false },
 
     // === 데이터 품질·매핑 ===
     { id: 'dq-open',  section: '데이터 품질', icon: 'help', title: '데이터 품질 보고서', sub: '결측치 · 이상치 · 일관성 위반 점검', hint: '', action: openDataQuality, requireData: true },
