@@ -3256,18 +3256,6 @@ svg { display: block; }
             <h1 class="hero-title">성적 분석 프로그램</h1>
             <p class="hero-subtitle">반 · 학년 · 전교 단위 집단 성적 분석 및 개인 성적 진단</p>
 
-            <!-- 분석 종류 선택 토글 (a-2) -->
-            <div class="upload-mode-toggle" role="tablist" aria-label="분석 종류 선택" id="uploadModeToggle">
-              <button class="upload-mode-btn" role="tab" data-mode="mock" onclick="setUploadMode('mock')" aria-selected="true">
-                <div class="upload-mode-title">📝 모의고사 / 내신 분석</div>
-                <div class="upload-mode-desc">반·학년·전교 성적 분석 + 개인 진단</div>
-              </button>
-              <button class="upload-mode-btn" role="tab" data-mode="freshman" onclick="setUploadMode('freshman')" aria-selected="false">
-                <div class="upload-mode-title">🎓 신입생 분석</div>
-                <div class="upload-mode-desc">출신중·전형·지역별 합격자 분석 (기초 자료)</div>
-              </button>
-            </div>
-
             <div class="dropzone" id="dropZone" role="button" tabindex="0"
                  aria-label="엑셀 파일 업로드 영역 — 클릭하거나 파일을 드래그하세요"
                  onclick="document.getElementById('fileInput').click()"
@@ -3279,8 +3267,8 @@ svg { display: block; }
                   <line x1="12" y1="3" x2="12" y2="15"/>
                 </svg>
               </div>
-              <div class="dropzone-title" id="dropzoneTitle">엑셀 파일을 드래그하거나 클릭</div>
-              <div class="dropzone-subtitle" id="dropzoneSubtitle">모의고사·내신 데이터 (.xlsx, .xls, .csv) — 최대 5개 학년도, 여러 회차 동시 업로드 가능</div>
+              <div class="dropzone-title">엑셀 파일을 드래그하거나 클릭</div>
+              <div class="dropzone-subtitle">📝 모의고사·내신 자료 + 🎓 신입생 기초 자료 — 자동 인식 · 함께 업로드 가능</div>
               <div class="dropzone-formats">
                 <span>.xlsx</span> <span aria-hidden="true">·</span> <span>.xls</span> <span aria-hidden="true">·</span> <span>.csv</span>
               </div>
@@ -6222,91 +6210,89 @@ function detectGradeFromFilename(name) {
 const VALID_EXTENSIONS = ['.xlsx', '.xls', '.csv'];
 
 /* ============================================================
-   업로드 모드 토글 (a-2): 모의고사 ↔ 신입생
+   파일 자동 분류 (b-1) — 시트명에 (N기) 패턴이 있으면 신입생, 그 외는 모의고사
+   bookSheets 옵션으로 시트 이름만 빠르게 추출 (전체 파싱 불필요)
    ============================================================ */
-function setUploadMode(mode) {
-  if (mode !== 'mock' && mode !== 'freshman') return;
-  if (state.uploadMode === mode) return;
-
-  // 모드 전환 시 기존 업로드 상태 초기화 (혼동 방지)
-  // 분석 데이터는 LocalStorage 자동저장에 남아있어 새로고침 시 복원 가능
-  state.uploadMode = mode;
-  state.uploadedFiles = [];
-  state.freshmanFiles = [];
-  state.freshmanData = [];
-
-  // 토글 UI 반영
-  document.querySelectorAll('#uploadModeToggle .upload-mode-btn').forEach(btn => {
-    btn.setAttribute('aria-selected', btn.dataset.mode === mode ? 'true' : 'false');
+async function classifyFile(file) {
+  const data = await new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = e => resolve(e.target.result);
+    r.onerror = reject;
+    r.readAsArrayBuffer(file);
   });
-
-  // dropzone 텍스트/속성 갱신
-  const titleEl = document.getElementById('dropzoneTitle');
-  const subEl = document.getElementById('dropzoneSubtitle');
-  const inputEl = document.getElementById('fileInput');
-  if (mode === 'freshman') {
-    if (titleEl) titleEl.textContent = '신입생 기초 자료를 드래그하거나 클릭';
-    if (subEl) subEl.textContent = '예: "00 신입생 기본자료.xlsx" — 시트명 (N기) 형식 자동 인식 / 1개 파일';
-    if (inputEl) inputEl.removeAttribute('multiple');
-  } else {
-    if (titleEl) titleEl.textContent = '엑셀 파일을 드래그하거나 클릭';
-    if (subEl) subEl.textContent = '모의고사·내신 데이터 (.xlsx, .xls, .csv) — 최대 5개 학년도, 여러 회차 동시 업로드 가능';
-    if (inputEl) inputEl.setAttribute('multiple', '');
-  }
-
-  // 미리보기·시작 버튼 숨김 (새 파일 업로드 대기)
-  document.getElementById('previewSection')?.classList.add('hidden');
-  document.getElementById('modeSection')?.classList.add('hidden');
-  document.getElementById('startAnalysisWrap')?.classList.add('hidden');
-  // 파일 리스트도 비움
-  const fl = document.getElementById('fileList'); if (fl) fl.innerHTML = '';
+  const wb = XLSX.read(data, { type: 'array', bookSheets: true });
+  const hasKisuSheet = (wb.SheetNames || []).some(n => /\(\s*\d+\s*기/.test(n));
+  return hasKisuSheet ? 'freshman' : 'mock';
 }
 
-function handleFiles(files) {
-  // 신입생 모드 분기 — 별도 흐름 (단일 파일 + 비동기 파싱)
-  if (state.uploadMode === 'freshman') {
-    handleFreshmanFiles(files);
-    return;
-  }
-
+async function handleFiles(files) {
   const currentYear = new Date().getFullYear();
-  let rejected = 0;
-  files.forEach(f => {
+  const mockBatch = [];   // 모의고사로 분류된 파일들 (기존 흐름)
+  const freshmanBatch = [];  // 신입생으로 분류된 파일들 (handleFreshmanFiles)
+
+  for (const f of files) {
     // 1. 확장자 검증
     const ext = '.' + (f.name.split('.').pop() || '').toLowerCase();
     if (!VALID_EXTENSIONS.includes(ext)) {
       toast('업로드 거절', `${f.name}: 지원 형식이 아닙니다 (${VALID_EXTENSIONS.join(', ')}만 가능)`, 'danger');
-      rejected++;
-      return;
+      continue;
     }
     // 2. 빈 파일 검증
     if (f.size === 0) {
       toast('업로드 거절', `${f.name}: 빈 파일입니다`, 'danger');
-      rejected++;
-      return;
+      continue;
     }
-    // 3. 중복 검증
-    if (state.uploadedFiles.find(u => u.file.name === f.name)) {
+    // 3. 중복 검증 (양쪽 큐 모두)
+    const dupMock = state.uploadedFiles.find(u => u.file.name === f.name);
+    const dupFresh = state.freshmanFiles.find(u => u.file.name === f.name);
+    if (dupMock || dupFresh) {
       toast('이미 업로드됨', f.name, 'warning');
-      return;
+      continue;
     }
-    const detectedYear = detectYearFromFilename(f.name);
-    const detectedSession = detectSessionFromFilename(f.name);
-    state.uploadedFiles.push({
-      file: f,
-      yearLabel: detectedYear || String(currentYear),
-      sessionLabel: detectedSession,
-      yearAuto: !detectedYear,
-      sessionAuto: !detectedSession,
-    });
-  });
-  const uniqueYears = [...new Set(state.uploadedFiles.map(u => u.yearLabel))];
-  if (uniqueYears.length > MAX_YEARS) {
-    toast('최대 ' + MAX_YEARS + '개 년도까지 지원합니다', '', 'warning');
-    state.uploadedFiles.pop();
+    // 4. 자동 분류 — CSV는 항상 모의고사로 (시트 개념 없음)
+    let type = 'mock';
+    if (ext !== '.csv') {
+      try {
+        type = await classifyFile(f);
+      } catch (e) {
+        console.warn('[classifyFile]', f.name, e);
+        toast('자동 인식 실패', `${f.name}: 모의고사로 처리합니다`, 'warning');
+        type = 'mock';
+      }
+    }
+    if (type === 'freshman') freshmanBatch.push(f);
+    else mockBatch.push(f);
   }
-  renderFileList();
-  if (state.uploadedFiles.length > 0) processUploadedFiles();
+
+  // 모의고사 일괄 처리 (기존 흐름)
+  if (mockBatch.length > 0) {
+    mockBatch.forEach(f => {
+      const detectedYear = detectYearFromFilename(f.name);
+      const detectedSession = detectSessionFromFilename(f.name);
+      state.uploadedFiles.push({
+        file: f,
+        yearLabel: detectedYear || String(currentYear),
+        sessionLabel: detectedSession,
+        yearAuto: !detectedYear,
+        sessionAuto: !detectedSession,
+      });
+    });
+    const uniqueYears = [...new Set(state.uploadedFiles.map(u => u.yearLabel))];
+    if (uniqueYears.length > MAX_YEARS) {
+      toast('최대 ' + MAX_YEARS + '개 년도까지 지원합니다', '', 'warning');
+      state.uploadedFiles.pop();
+    }
+    renderFileList();
+    if (state.uploadedFiles.length > 0) processUploadedFiles();
+  }
+
+  // 신입생 일괄 처리 (단일 파일 가정 — 여러 개면 마지막 것이 보관됨; b-2에서 다중 지원 검토)
+  if (freshmanBatch.length > 0) {
+    if (freshmanBatch.length > 1) {
+      toast('주의', `신입생 자료 ${freshmanBatch.length}개 감지 — 현재는 가장 최근 1개만 분석에 사용`, 'warning');
+    }
+    await handleFreshmanFiles(freshmanBatch);
+  }
 }
 
 /* 신입생 자료 업로드 처리 (단일 파일, 비동기 파싱).
@@ -6355,6 +6341,18 @@ async function handleFreshmanFiles(files) {
   }
 }
 
+/* 신입생 자료 제거 — 사용자가 잘못 올렸거나 다시 시작하고 싶을 때 */
+function removeFreshmanFile() {
+  state.freshmanData = [];
+  state.freshmanFiles = [];
+  document.getElementById('previewSection')?.classList.add('hidden');
+  // 모의고사 파일도 없으면 분석 시작 버튼 숨김
+  if (!state.uploadedFiles.length) {
+    document.getElementById('startAnalysisWrap')?.classList.add('hidden');
+  }
+  toast('신입생 자료 제거', '다시 업로드할 수 있습니다', 'info');
+}
+
 /* 신입생 자료 업로드 후 미리보기 — 시트별 인식 결과 표 + 빠른 통계 */
 function renderFreshmanPreview() {
   const previewEl = document.getElementById('previewSection');
@@ -6378,14 +6376,15 @@ function renderFreshmanPreview() {
     <div class="preview-card" style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:12px;padding:18px 20px;margin-top:16px">
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:14px">
         <div>
-          <div style="font-size:15px;font-weight:600;color:var(--text)">🎓 ${escapeHtml(meta.file.name)}</div>
+          <div style="font-size:15px;font-weight:600;color:var(--text)">🎓 ${escapeHtml(meta.file.name)} <span style="display:inline-block;background:#10b981;color:#fff;font-size:11px;font-weight:500;padding:2px 8px;border-radius:10px;margin-left:6px">신입생</span></div>
           <div style="font-size:12.5px;color:var(--text-muted);margin-top:2px">
             ${records.length.toLocaleString()}명 · ${okDiags.length}개 기수 시트 인식 · ${defaultRangeNote}
           </div>
         </div>
-        <button class="btn btn-secondary btn-sm" onclick="setUploadMode('freshman'); document.getElementById('fileInput').click()" title="다른 파일로 교체">
-          파일 교체
-        </button>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-secondary btn-sm" onclick="document.getElementById('fileInput').click()" title="다른 파일로 교체">파일 교체</button>
+          <button class="btn btn-ghost btn-sm" onclick="removeFreshmanFile()" title="신입생 자료 제거">제거</button>
+        </div>
       </div>
 
       <div style="overflow-x:auto;border:1px solid var(--border);border-radius:8px">
@@ -6441,7 +6440,7 @@ function renderFileList() {
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
       </div>
       <div class="file-info">
-        <div class="file-name">${u.file.name}</div>
+        <div class="file-name">${u.file.name} <span style="display:inline-block;background:#3b82f6;color:#fff;font-size:11px;font-weight:500;padding:2px 8px;border-radius:10px;margin-left:6px">📝 모의고사</span></div>
         <div class="file-meta">${(u.file.size / 1024).toFixed(1)} KB · 학년도 ${u.yearLabel}${yearHint} · 회차 ${u.sessionLabel || '?'}${sessionHint}</div>
       </div>
       <input type="text" class="file-year-input ${u.yearAuto ? 'is-auto' : ''}" value="${u.yearLabel}" maxlength="10"
@@ -6490,9 +6489,15 @@ async function removeFile(i) {
   state.uploadedFiles.splice(i, 1);
   renderFileList();
   if (state.uploadedFiles.length === 0) {
-    document.getElementById('previewSection').classList.add('hidden');
     document.getElementById('modeSection').classList.add('hidden');
-    document.getElementById('startAnalysisWrap').classList.add('hidden');
+    // 신입생 자료가 있으면 미리보기·분석 시작 버튼 유지
+    if (!state.freshmanData?.length) {
+      document.getElementById('previewSection').classList.add('hidden');
+      document.getElementById('startAnalysisWrap').classList.add('hidden');
+    } else {
+      // 모의고사 미리보기는 사라졌지만 신입생 미리보기는 다시 그림
+      renderFreshmanPreview();
+    }
   } else {
     processUploadedFiles();
   }
@@ -8827,12 +8832,18 @@ function selectMode(mode) {
    START ANALYSIS
    ============================================================ */
 async function startAnalysis() {
-  // 신입생 모드 분기 — state.freshmanData 검사
-  if (state.uploadMode === 'freshman') {
-    if (!state.freshmanData || state.freshmanData.length === 0) {
-      toast('분석할 데이터가 없습니다', '신입생 자료를 먼저 업로드하세요', 'warning');
-      return;
-    }
+  // 분기 기준: 실제 보유 데이터로 결정 (b-1: uploadMode 토글 폐기)
+  const hasFreshman = state.freshmanData && state.freshmanData.length > 0;
+  const hasMock = state.parsedData && state.parsedData.length > 0;
+
+  // 둘 다 없으면 거절
+  if (!hasFreshman && !hasMock) {
+    toast('분석할 데이터가 없습니다', '엑셀 파일을 먼저 업로드하세요', 'warning');
+    return;
+  }
+
+  // 신입생만 있는 경우 → 신입생 분석 모드 (b-2/b-3 결합 분석은 모의고사도 있어야 활성)
+  if (hasFreshman && !hasMock) {
     state.analysisMode = 'freshman';
     LoadingOverlay.show('신입생 분석 중', `${state.freshmanData.length.toLocaleString()}명 처리 중...`);
     await new Promise(r => setTimeout(r, 60));
@@ -8853,7 +8864,17 @@ async function startAnalysis() {
     return;
   }
 
-  if (!state.parsedData || state.parsedData.length === 0) {
+  // 둘 다 있는 경우: b-1에서는 모의고사 분석을 시작하되, 신입생 자료 보유 안내.
+  // b-2(매칭) + b-3(결합 분석)에서 본격적으로 두 데이터를 결합하게 됨.
+  if (hasFreshman && hasMock) {
+    toast(
+      '신입생 자료 N명 함께 보유 중'.replace('N', state.freshmanData.length.toLocaleString()),
+      '결합 분석은 다음 단계(b-2 매칭, b-3 결합 분석)에서 활성화됩니다',
+      'info', 6000
+    );
+  }
+
+  if (!hasMock) {
     toast('분석할 데이터가 없습니다', '엑셀 파일을 먼저 업로드하세요', 'warning');
     return;
   }
