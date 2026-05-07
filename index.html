@@ -4510,8 +4510,11 @@ function applyFilters() {
   renderSidebar();  // refresh active filter count + data summary
   if (activeTab) setTimeout(() => switchTab(activeTab), 10);
 }
-const MAX_YEARS = 5;
-const YEAR_COLORS = ['#4F46E5', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
+// 모의고사 학년도 동시 업로드 제한.
+// 5 → 20으로 확장: 신입생 기초자료(13기수)와 모의고사 자료를 함께 분석하는 매년 워크플로우에 맞춤.
+// 자동저장(LocalStorage 5MB 한계) 초과 시 기존 코드에서 사용자에게 안내함.
+const MAX_YEARS = 20;
+const YEAR_COLORS = ['#4F46E5', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4', '#EC4899', '#84CC16', '#F97316', '#6366F1', '#14B8A6', '#A855F7'];
 const charts = {};
 
 /* ============================================================
