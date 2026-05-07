@@ -6028,10 +6028,22 @@ fileInput.addEventListener('change', ev => {
 
 // Extract year from filename. Accepts "2026", "2026년", "2025학년도", etc.
 // Skip false positives like "20240101" if more than 4 digits in a row.
+// 학교의 기수↔학년도 기준선. 13기=2026학년도, 1년 차이당 ±1년 적용.
+// 다른 학교/연도로 이동 시 이 한 줄만 갱신하면 'N기' 파일명 자동 학년도 매핑이 동작.
+const SCHOOL_KISU_BASELINE = { kisu: 13, year: 2026 };
+
 function detectYearFromFilename(name) {
+  // 우선순위 1: 4자리 학년도 명시 ("2025학년도", "2024_3월" 등)
   const re = /(?<![0-9])(20\d{2})(?:학년도|년도|년)?(?![0-9])/g;
   const matches = [...name.matchAll(re)].map(m => m[1]);
-  return matches.length ? matches[0] : null;
+  if (matches.length) return matches[0];
+  // 우선순위 2: 'N기' 패턴 → SCHOOL_KISU_BASELINE 기준 매핑
+  const km = name.match(/(?<![0-9])(\d+)\s*기(?![0-9])/);
+  if (km) {
+    const k = +km[1];
+    return String(SCHOOL_KISU_BASELINE.year + (k - SCHOOL_KISU_BASELINE.kisu));
+  }
+  return null;
 }
 
 // Extract session/회차. Accepts "3월", "03월", "3월_모의", "11월모의", "2024_3 ..." etc.

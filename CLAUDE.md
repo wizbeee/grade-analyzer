@@ -116,11 +116,22 @@ grade-analyzer/
 - **계열 판정**: `classifyTanguTrack(탐구1, 탐구2)` — 둘 다 사회 → 문과, 둘 다 과학 → 이과, 그 외 혼합
 - **참조 기준 파일**: `2026 3월 실채점결과 분석(진로진학부) 공유용.xlsx`
 
+## 학교 기수↔학년도 기준선
+파일명에 "20xx" 4자리 학년도가 없어도 "N기" 패턴으로 자동 매핑하기 위한 baseline.
+`SCHOOL_KISU_BASELINE = { kisu: 13, year: 2026 }` (index.html 상단, `detectYearFromFilename` 위).
+다른 학교/연도로 이동 시 이 한 줄만 수정. 매핑 공식: `year = baseline.year + (N - baseline.kisu)`.
+검증된 입력 양식 6종: 8~10기 (기수 컬럼만), 11~12기 (학년도+기수), 13기 (학년도만, 시트명 "empty") — 모두 `parseFormatB`가 자동 인식.
+
+## 다른 PC 이동 가이드
+1. **코드 이식**: `git clone https://github.com/wizbeee/grade-analyzer.git` 또는 GitHub에서 ZIP 다운로드
+2. **데이터 이식**: 사이드바 → 프로젝트 관리 → "전체 백업" 클릭 → `.json` 파일 다운로드 → 다른 PC에서 같은 모달의 "백업 불러오기" 클릭
+3. **매핑 양식 이식**: LocalStorage 4개 키(`gradeAnalyzer:project:current`, `grade-analyzer-custom-charts-v1`, `grade-analyzer-custom-groups-v1`, `grade-analyzer-mappings-v1`)는 백업 JSON에 일부 포함. 차트/그룹/매핑 양식까지 옮기려면 DevTools → Application → LocalStorage에서 별도 export 필요.
+
 ## 알려진 이슈 & TODO
-- 사용자 실제 엑셀 데이터로 파싱 검증 필요 (컬럼명 변형 가능성)
 - Wide 포맷에서 표준점수/백분위/등급 등 부가 데이터 추출 미지원 (원점수만)
 - 개인 모드 탭은 기본 구현만 완료 (모의고사/내신 각 1탭)
 - html2canvas 기반 이미지/PDF 내보내기는 복잡한 Plotly 차트에서 불완전할 수 있음
+- 매핑 모달 자동 트리거 미통합: `parseFormatA/B + Wide/Long`이 모두 실패해도 모달은 자동으로 뜨지 않음. 사용자가 사이드바 "매핑 다시 확인" 메뉴로 수동 호출. 통합 시 `processUploadedFiles`에 4번째 파싱 경로 추가 필요.
 
 ## 데이터 프라이버시
 모든 처리가 브라우저 JavaScript에서 수행됨. 서버 전송 API 호출 없음.
