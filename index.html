@@ -9190,8 +9190,8 @@ async function startAnalysis() {
     return;
   }
 
-  // 둘 다 있는 경우 (b-2): 자동 매칭 실행 후 freshman 프로필을 모의고사 record에 attach.
-  // b-3에서 출신중·전형·지역별 결합 분석에 활용.
+  // 둘 다 있는 경우 (b-2 매칭 + b-3 결합 분석): 매칭 실행 후 신입생 모드로 진입.
+  // 결합 분석 탭들(출신중·전형·지역별 모의고사 성적)이 신입생 모드 사이드바에 활성화됨.
   if (hasFreshman && hasMock) {
     try {
       const result = runFreshmanMatching(state.parsedData, state.freshmanData);
@@ -9201,13 +9201,32 @@ async function startAnalysis() {
       const tone = s.matchRate >= 0.85 ? 'success' : (s.matchRate >= 0.6 ? 'warning' : 'danger');
       toast(
         `매칭 ${pct}% (${s.matchedCount}/${s.totalStudents}명)`,
-        `미매칭 ${s.unmatchedCount}명 · 동명이인 ${s.ambiguousCount}건. 명령 팔레트에서 "매칭 결과"로 상세 확인`,
+        `결합 분석 탭에서 출신중·전형·지역별 성적 확인 가능. 미매칭 ${s.unmatchedCount}명 · 동명이인 ${s.ambiguousCount}건`,
         tone, 7000
       );
     } catch (e) {
       console.error('[runFreshmanMatching]', e);
       toast('매칭 실패', e.message || String(e), 'danger');
     }
+
+    // 신입생 모드로 진입 — 결합 분석 탭들 활성화
+    state.analysisMode = 'freshman';
+    LoadingOverlay.show('결합 분석 준비 중', `신입생 ${state.freshmanData.length.toLocaleString()}명 + 모의고사 ${state.parsedData.length.toLocaleString()}건...`);
+    await new Promise(r => setTimeout(r, 60));
+    try {
+      renderResults();
+      document.getElementById('uploadSection').classList.add('hidden');
+      document.getElementById('resultsSection').classList.remove('hidden');
+      document.getElementById('exportDropdown').style.display = '';
+      document.getElementById('breadcrumbCurrent').textContent = '신입생 + 모의고사 결합 분석';
+      try { renderSidebar(); } catch (e) { console.warn('[sidebar]', e); }
+    } catch (err) {
+      console.error('[startAnalysis-combined]', err);
+      toast('분석 오류', err.message || String(err), 'danger');
+    } finally {
+      LoadingOverlay.hide();
+    }
+    return;
   }
 
   if (!hasMock) {
@@ -9371,13 +9390,14 @@ function renderSidebarFreshman() {
   const activeFilters = (f.kisu?.length || 0) + (f.admissionTypes?.length || 0) + (f.regions?.length || 0) + (f.middleSchools?.length || 0) + (f.genders?.length || 0);
   const allYears = [...new Set(all.map(r => r.year).filter(v => v != null))].sort((a, b) => b - a);
   const rangeLabel = f.rangeYears === 'all' ? '전체' : `최근 ${f.rangeYears}년`;
+  // 결합 분석 탭은 매칭이 있을 때만 활성 (모의고사+신입생 둘 다 업로드 시)
+  const hasMatching = state.matchingResult && state.matchingResult.matched.length > 0;
   const tabs = [
     { id: 'summary', label: '요약', icon: '📊' },
-    // a-3에서 추가될 탭 placeholder (현재 비활성)
-    // { id: 'school', label: '출신중', icon: '🏫' },
-    // { id: 'region', label: '지역', icon: '🌏' },
-    // { id: 'admission', label: '전형', icon: '🎫' },
-    // { id: 'gender', label: '성비/추세', icon: '⚖' },
+    ...(hasMatching ? [
+      { id: 'school', label: '출신중별 성적', icon: '🏫' },
+      // b-3-b: 전형별 / 지역별 추가 예정
+    ] : []),
   ];
   return `
     <div class="sidebar-section">
@@ -9472,8 +9492,172 @@ function renderFreshmanResults() {
   if (filterBar) filterBar.innerHTML = '';
   if (tabsNav) tabsNav.innerHTML = '';
 
-  // 현재는 요약 탭만 (a-3에서 확장)
-  tabContents.innerHTML = renderFreshmanSummaryTab(filtered, all, allYears);
+  // 탭 분기 (b-3: 결합 분석 탭들 추가)
+  const tab = state.freshmanCurrentTab || 'summary';
+  if (tab === 'school') {
+    tabContents.innerHTML = renderFreshmanSchoolTab(filtered);
+  } else {
+    tabContents.innerHTML = renderFreshmanSummaryTab(filtered, all, allYears);
+  }
+}
+
+/* ============================================================
+   결합 분석 헬퍼 (b-3) — 매칭된 모의고사 record들을 차원별로 그룹화
+   ============================================================ */
+
+/* 매칭된 모의고사 record만 반환 (rec.freshman 프로필이 있는 것).
+   freshmanFilter의 기수 필터를 함께 적용하여 신입생 모드 필터와 일관성 유지. */
+function getMatchedMockRecords() {
+  if (!state.parsedData || state.parsedData.length === 0) return [];
+  const filteredFreshman = getFreshmanFilteredData();
+  const filteredKisus = new Set(filteredFreshman.map(r => r.kisu));
+  return state.parsedData.filter(r => r.freshman && filteredKisus.has(r.freshman.kisu));
+}
+
+/* 신입생 차원(출신중/전형/지역/성별) × 과목 등급 분포 집계.
+   반환: { [groupKey]: { [subject]: { studentIds:Set, gradeBuckets:{1-2:N,3-4:N,5-6:N,7-9:N}, mean, stdMean, count } } }
+   학생 단위 집계 (한 학생의 한 과목은 여러 회차/학년이 있어도 1번만 카운트, 점수는 평균) */
+function aggregateMatchedByDimension(dimensionField) {
+  const matched = getMatchedMockRecords();
+  if (matched.length === 0) return {};
+
+  // 학생 단위로 (study, subject)별 점수 평균 + 등급 평균 우선 계산
+  const perStudent = new Map();  // studentKey → { dim, subject, scores:[], grades:[] }
+  for (const r of matched) {
+    const dimVal = r.freshman?.[dimensionField] || '(미상)';
+    const subj = r.subjectGroup || r.subject;
+    if (!subj) continue;
+    const key = `${r.studentId}|${subj}`;
+    if (!perStudent.has(key)) perStudent.set(key, { dim: dimVal, subject: subj, scores: [], grades: [], stdScores: [] });
+    const e = perStudent.get(key);
+    if (typeof r.rawScore === 'number') e.scores.push(r.rawScore);
+    if (typeof r.standardScore === 'number') e.stdScores.push(r.standardScore);
+    if (typeof r.grade9 === 'number') e.grades.push(r.grade9);
+  }
+
+  // 차원별 × 과목별 집계
+  const out = {};
+  for (const e of perStudent.values()) {
+    if (!out[e.dim]) out[e.dim] = {};
+    if (!out[e.dim][e.subject]) out[e.dim][e.subject] = {
+      studentCount: 0,
+      gradeBuckets: { '1-2등급': 0, '3-4등급': 0, '5-6등급': 0, '7-9등급': 0 },
+      gradeSum: 0, gradeN: 0,
+      scoreSum: 0, scoreN: 0,
+      stdScoreSum: 0, stdScoreN: 0,
+    };
+    const cell = out[e.dim][e.subject];
+    cell.studentCount++;
+    if (e.grades.length) {
+      const g = e.grades.reduce((s, v) => s + v, 0) / e.grades.length;
+      cell.gradeSum += g; cell.gradeN++;
+      if (g <= 2) cell.gradeBuckets['1-2등급']++;
+      else if (g <= 4) cell.gradeBuckets['3-4등급']++;
+      else if (g <= 6) cell.gradeBuckets['5-6등급']++;
+      else cell.gradeBuckets['7-9등급']++;
+    }
+    if (e.scores.length) {
+      cell.scoreSum += e.scores.reduce((s, v) => s + v, 0) / e.scores.length;
+      cell.scoreN++;
+    }
+    if (e.stdScores.length) {
+      cell.stdScoreSum += e.stdScores.reduce((s, v) => s + v, 0) / e.stdScores.length;
+      cell.stdScoreN++;
+    }
+  }
+  return out;
+}
+
+/* 출신중별 성적 탭 — 표 + KPI. 차트는 b-3-b에서 추가 */
+function renderFreshmanSchoolTab(filteredFreshman) {
+  const matched = getMatchedMockRecords();
+  if (matched.length === 0) {
+    return `
+      <div class="empty-state" style="padding:40px;text-align:center;color:var(--text-muted)">
+        <div style="font-size:15px;margin-bottom:8px">매칭된 모의고사 데이터가 없습니다</div>
+        <div style="font-size:12.5px">신입생 자료 + 모의고사 자료를 모두 업로드하고 분석을 시작하세요. 매칭률은 명령 팔레트(⌘K) "매칭 결과"에서 확인.</div>
+      </div>`;
+  }
+
+  const agg = aggregateMatchedByDimension('middleSchool');
+  const subjects = ['국어', '수학', '영어', '한국사', '탐구1', '탐구2'];
+  const schoolEntries = Object.entries(agg)
+    .map(([school, byS]) => {
+      // 가장 인원 많은 과목 기준 학생수 (대표값)
+      const maxCount = Math.max(...subjects.map(s => byS[s]?.studentCount || 0), 0);
+      return [school, byS, maxCount];
+    })
+    .filter(e => e[2] >= 3)  // 3명 미만 학교는 통계 신뢰도 낮음 → 제외
+    .sort((a, b) => b[2] - a[2]);
+
+  const totalSchools = schoolEntries.length;
+  const totalStudents = new Set(matched.map(r => r.studentId)).size;
+  const matchedCount = state.matchingResult?.stats?.matchedCount || 0;
+
+  return `
+    <div style="padding:16px 20px">
+      <!-- KPI -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:12px;margin-bottom:20px">
+        <div class="kpi-card" style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:10px;padding:14px 16px">
+          <div style="font-size:11.5px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em">분석 대상 학생</div>
+          <div style="font-size:24px;font-weight:700;color:var(--text);margin-top:4px">${totalStudents.toLocaleString()}<span style="font-size:14px;color:var(--text-muted);font-weight:400">명</span></div>
+        </div>
+        <div class="kpi-card" style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:10px;padding:14px 16px">
+          <div style="font-size:11.5px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em">출신 중학교 (3명+)</div>
+          <div style="font-size:24px;font-weight:700;color:var(--text);margin-top:4px">${totalSchools}<span style="font-size:14px;color:var(--text-muted);font-weight:400">개교</span></div>
+        </div>
+        <div class="kpi-card" style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:10px;padding:14px 16px">
+          <div style="font-size:11.5px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em">매칭된 모의고사</div>
+          <div style="font-size:24px;font-weight:700;color:var(--text);margin-top:4px">${matched.length.toLocaleString()}<span style="font-size:14px;color:var(--text-muted);font-weight:400">건</span></div>
+        </div>
+        <div class="kpi-card" style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:10px;padding:14px 16px">
+          <div style="font-size:11.5px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em">매칭 인원 (전체)</div>
+          <div style="font-size:24px;font-weight:700;color:var(--text);margin-top:4px">${matchedCount.toLocaleString()}<span style="font-size:14px;color:var(--text-muted);font-weight:400">명</span></div>
+        </div>
+      </div>
+
+      <!-- 출신중별 평균 등급 표 -->
+      <div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:10px;padding:16px 18px;margin-bottom:20px">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px">
+          <div style="font-size:14px;font-weight:600;color:var(--text)">출신 중학교별 과목 평균 등급 (낮을수록 우수)</div>
+          <div style="font-size:11.5px;color:var(--text-muted)">3명 이상인 학교만 / 인원 내림차순</div>
+        </div>
+        <div style="overflow-x:auto">
+          <table style="width:100%;border-collapse:collapse;font-size:13px">
+            <thead>
+              <tr style="background:var(--bg-hover)">
+                <th style="padding:8px 10px;text-align:left;border-bottom:1px solid var(--border);position:sticky;left:0;background:var(--bg-hover)">출신중</th>
+                <th style="padding:8px 10px;text-align:right;border-bottom:1px solid var(--border)">인원</th>
+                ${subjects.map(s => `<th style="padding:8px 10px;text-align:right;border-bottom:1px solid var(--border)">${s}</th>`).join('')}
+              </tr>
+            </thead>
+            <tbody>
+              ${schoolEntries.slice(0, 30).map(([school, byS, n]) => {
+                const cells = subjects.map(s => {
+                  const c = byS[s];
+                  if (!c || c.gradeN === 0) return `<td style="padding:6px 10px;text-align:right;color:var(--text-muted)">-</td>`;
+                  const avg = (c.gradeSum / c.gradeN);
+                  // 등급 색상: 1-2 우수(녹색), 3-4 보통(파랑), 5+ 주의(주황)
+                  const color = avg <= 2.5 ? '#16a34a' : (avg <= 4 ? 'var(--text)' : (avg <= 5.5 ? '#d97706' : '#dc2626'));
+                  return `<td style="padding:6px 10px;text-align:right;color:${color};font-weight:${avg <= 3 ? '600' : '400'}">${avg.toFixed(2)} <span style="color:var(--text-muted);font-size:11px">(${c.studentCount})</span></td>`;
+                }).join('');
+                return `<tr>
+                  <td style="padding:6px 10px;border-bottom:1px solid var(--border-subtle, var(--border));position:sticky;left:0;background:var(--bg-elevated);font-weight:500">${escapeHtml(school)}</td>
+                  <td style="padding:6px 10px;text-align:right;border-bottom:1px solid var(--border-subtle, var(--border))"><strong>${n}</strong></td>
+                  ${cells}
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+          ${schoolEntries.length > 30 ? `<div style="padding:8px 10px;color:var(--text-muted);font-size:11.5px;text-align:center">전체 ${schoolEntries.length}개교 중 인원 상위 30개교만 표시</div>` : ''}
+        </div>
+      </div>
+
+      <div style="margin-top:14px;padding:10px 14px;background:var(--bg-hover);border-radius:8px;font-size:12.5px;color:var(--text-muted)">
+        💡 단계 b-3-a — 출신중별 결합 분석 표. 다음(b-3-b)에서 전형별·지역별 탭 + Plotly 차트(가로 막대/박스플롯)가 추가됩니다. 각 셀 = 학생 단위 평균 등급(여러 회차/학년 평균). 괄호 안은 학생 수.
+      </div>
+    </div>
+  `;
 }
 
 /* 요약 탭 — KPI + 기수별 표 + 성비 + 전형 분포 + 출신중/지역 TOP */
