@@ -1532,7 +1532,36 @@ svg { display: block; }
 .hero-subtitle {
   font-size: 14px;
   color: var(--text-muted);
-  margin-bottom: var(--space-8);
+  margin-bottom: var(--space-6);
+}
+
+/* 분석 종류 선택 토글 (a-2) */
+.upload-mode-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
+}
+.upload-mode-btn {
+  background: var(--bg-elevated);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-4) var(--space-5);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color var(--transition-fast), background var(--transition-fast), transform var(--transition-fast);
+  font-family: inherit;
+}
+.upload-mode-btn:hover { border-color: var(--border-strong); background: var(--bg-hover); }
+.upload-mode-btn[aria-selected="true"] {
+  border-color: var(--accent, #2563eb);
+  background: color-mix(in srgb, var(--accent, #2563eb) 6%, var(--bg-elevated));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent, #2563eb) 12%, transparent);
+}
+.upload-mode-title { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+.upload-mode-desc { font-size: 12.5px; color: var(--text-muted); }
+@media (max-width: 640px) {
+  .upload-mode-toggle { grid-template-columns: 1fr; }
 }
 
 .dropzone {
@@ -3227,6 +3256,18 @@ svg { display: block; }
             <h1 class="hero-title">성적 분석 프로그램</h1>
             <p class="hero-subtitle">반 · 학년 · 전교 단위 집단 성적 분석 및 개인 성적 진단</p>
 
+            <!-- 분석 종류 선택 토글 (a-2) -->
+            <div class="upload-mode-toggle" role="tablist" aria-label="분석 종류 선택" id="uploadModeToggle">
+              <button class="upload-mode-btn" role="tab" data-mode="mock" onclick="setUploadMode('mock')" aria-selected="true">
+                <div class="upload-mode-title">📝 모의고사 / 내신 분석</div>
+                <div class="upload-mode-desc">반·학년·전교 성적 분석 + 개인 진단</div>
+              </button>
+              <button class="upload-mode-btn" role="tab" data-mode="freshman" onclick="setUploadMode('freshman')" aria-selected="false">
+                <div class="upload-mode-title">🎓 신입생 분석</div>
+                <div class="upload-mode-desc">출신중·전형·지역별 합격자 분석 (기초 자료)</div>
+              </button>
+            </div>
+
             <div class="dropzone" id="dropZone" role="button" tabindex="0"
                  aria-label="엑셀 파일 업로드 영역 — 클릭하거나 파일을 드래그하세요"
                  onclick="document.getElementById('fileInput').click()"
@@ -3238,8 +3279,8 @@ svg { display: block; }
                   <line x1="12" y1="3" x2="12" y2="15"/>
                 </svg>
               </div>
-              <div class="dropzone-title">엑셀 파일을 드래그하거나 클릭</div>
-              <div class="dropzone-subtitle">모의고사·내신 데이터 (.xlsx, .xls, .csv) — 최대 5개 학년도, 여러 회차 동시 업로드 가능</div>
+              <div class="dropzone-title" id="dropzoneTitle">엑셀 파일을 드래그하거나 클릭</div>
+              <div class="dropzone-subtitle" id="dropzoneSubtitle">모의고사·내신 데이터 (.xlsx, .xls, .csv) — 최대 5개 학년도, 여러 회차 동시 업로드 가능</div>
               <div class="dropzone-formats">
                 <span>.xlsx</span> <span aria-hidden="true">·</span> <span>.xls</span> <span aria-hidden="true">·</span> <span>.csv</span>
               </div>
@@ -3883,9 +3924,11 @@ let state = {
   drilldownState: null,     // { records, columns, title } — for CSV export
   customCharts: [],         // [{ id, name, desc, type, config, thumb, includeInReport, createdAt }]
   chartStudio: null,        // Live editor state — { name, type, x, y, group, agg, metric, scope, ... }
-  // ── 신입생 분석 모드 (단계 a-1: 파서 + 데이터 모델) ──
+  // ── 신입생 분석 모드 (단계 a-1: 파서 + 데이터 모델, a-2: UI 통합) ──
+  uploadMode: 'mock',       // 업로드 화면 상태: 'mock' (모의고사) | 'freshman' (신입생 자료)
   freshmanData: [],         // [{ kisu, year, name, gender, admissionType, middleSchool, region, ... }]
   freshmanFiles: [],        // [{ file, parsedAt, sheetCount, recordCount, diagnostics }]
+  freshmanCurrentTab: 'summary',  // 신입생 모드 탭 상태
   freshmanFilter: {         // 표시 필터 (데이터 자체는 전체 보관, 화면 기본값만 최근 5년)
     rangeYears: 5,          // 'all' 또는 숫자 N (최근 N년)
     kisu: [],               // 선택된 기수 목록 ([]이면 rangeYears 적용)
@@ -4580,11 +4623,14 @@ const ICON_OPTIONS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
 function renderSidebar() {
   const body = document.getElementById('sidebarBody');
   if (!body) return;
-  const inResults = state.parsedData && state.parsedData.length > 0
-    && document.getElementById('resultsSection')
+  const resultsVisible = document.getElementById('resultsSection')
     && !document.getElementById('resultsSection').classList.contains('hidden');
+  const inFreshman = state.analysisMode === 'freshman' && state.freshmanData && state.freshmanData.length > 0 && resultsVisible;
+  const inResults = state.parsedData && state.parsedData.length > 0 && resultsVisible;
 
-  if (inResults) {
+  if (inFreshman) {
+    body.innerHTML = renderSidebarFreshman();
+  } else if (inResults) {
     body.innerHTML = renderSidebarResults();
   } else {
     body.innerHTML = renderSidebarUpload();
@@ -6175,7 +6221,54 @@ function detectGradeFromFilename(name) {
 
 const VALID_EXTENSIONS = ['.xlsx', '.xls', '.csv'];
 
+/* ============================================================
+   업로드 모드 토글 (a-2): 모의고사 ↔ 신입생
+   ============================================================ */
+function setUploadMode(mode) {
+  if (mode !== 'mock' && mode !== 'freshman') return;
+  if (state.uploadMode === mode) return;
+
+  // 모드 전환 시 기존 업로드 상태 초기화 (혼동 방지)
+  // 분석 데이터는 LocalStorage 자동저장에 남아있어 새로고침 시 복원 가능
+  state.uploadMode = mode;
+  state.uploadedFiles = [];
+  state.freshmanFiles = [];
+  state.freshmanData = [];
+
+  // 토글 UI 반영
+  document.querySelectorAll('#uploadModeToggle .upload-mode-btn').forEach(btn => {
+    btn.setAttribute('aria-selected', btn.dataset.mode === mode ? 'true' : 'false');
+  });
+
+  // dropzone 텍스트/속성 갱신
+  const titleEl = document.getElementById('dropzoneTitle');
+  const subEl = document.getElementById('dropzoneSubtitle');
+  const inputEl = document.getElementById('fileInput');
+  if (mode === 'freshman') {
+    if (titleEl) titleEl.textContent = '신입생 기초 자료를 드래그하거나 클릭';
+    if (subEl) subEl.textContent = '예: "00 신입생 기본자료.xlsx" — 시트명 (N기) 형식 자동 인식 / 1개 파일';
+    if (inputEl) inputEl.removeAttribute('multiple');
+  } else {
+    if (titleEl) titleEl.textContent = '엑셀 파일을 드래그하거나 클릭';
+    if (subEl) subEl.textContent = '모의고사·내신 데이터 (.xlsx, .xls, .csv) — 최대 5개 학년도, 여러 회차 동시 업로드 가능';
+    if (inputEl) inputEl.setAttribute('multiple', '');
+  }
+
+  // 미리보기·시작 버튼 숨김 (새 파일 업로드 대기)
+  document.getElementById('previewSection')?.classList.add('hidden');
+  document.getElementById('modeSection')?.classList.add('hidden');
+  document.getElementById('startAnalysisWrap')?.classList.add('hidden');
+  // 파일 리스트도 비움
+  const fl = document.getElementById('fileList'); if (fl) fl.innerHTML = '';
+}
+
 function handleFiles(files) {
+  // 신입생 모드 분기 — 별도 흐름 (단일 파일 + 비동기 파싱)
+  if (state.uploadMode === 'freshman') {
+    handleFreshmanFiles(files);
+    return;
+  }
+
   const currentYear = new Date().getFullYear();
   let rejected = 0;
   files.forEach(f => {
@@ -6214,6 +6307,123 @@ function handleFiles(files) {
   }
   renderFileList();
   if (state.uploadedFiles.length > 0) processUploadedFiles();
+}
+
+/* 신입생 자료 업로드 처리 (단일 파일, 비동기 파싱).
+   parseFreshmanWorkbook을 그대로 활용하고 결과를 미리보기로 표시. */
+async function handleFreshmanFiles(files) {
+  const f = files[0];
+  if (!f) return;
+  // 1. 확장자 / 빈 파일 검증
+  const ext = '.' + (f.name.split('.').pop() || '').toLowerCase();
+  if (!['.xlsx', '.xls'].includes(ext)) {
+    toast('업로드 거절', `${f.name}: 신입생 자료는 .xlsx / .xls만 지원`, 'danger');
+    return;
+  }
+  if (f.size === 0) {
+    toast('업로드 거절', `${f.name}: 빈 파일`, 'danger');
+    return;
+  }
+
+  LoadingOverlay.show('신입생 자료 파싱 중', f.name);
+  await new Promise(r => setTimeout(r, 50));
+  try {
+    const t0 = performance.now();
+    const { records, diagnostics } = await parseFreshmanWorkbook(f);
+    const dt = (performance.now() - t0).toFixed(0);
+    state.freshmanData = records;
+    state.freshmanFiles = [{
+      file: f, parsedAt: Date.now(),
+      sheetCount: diagnostics.filter(d => d.status === 'ok').length,
+      recordCount: records.length,
+      diagnostics,
+    }];
+    LoadingOverlay.hide();
+
+    if (records.length === 0) {
+      toast('파싱 실패', '인식된 학생 데이터가 없습니다 (시트명에 "(N기)" 형식이 필요)', 'danger');
+      return;
+    }
+
+    renderFreshmanPreview();
+    document.getElementById('startAnalysisWrap')?.classList.remove('hidden');
+    toast('파싱 완료', `${records.length.toLocaleString()}명 / ${state.freshmanFiles[0].sheetCount}개 기수 시트 인식 (${dt}ms)`, 'success');
+  } catch (e) {
+    LoadingOverlay.hide();
+    console.error('[handleFreshmanFiles]', e);
+    toast('파싱 오류', e.message || String(e), 'danger');
+  }
+}
+
+/* 신입생 자료 업로드 후 미리보기 — 시트별 인식 결과 표 + 빠른 통계 */
+function renderFreshmanPreview() {
+  const previewEl = document.getElementById('previewSection');
+  if (!previewEl) return;
+  const meta = state.freshmanFiles[0]; if (!meta) return;
+  const records = state.freshmanData;
+  const diags = meta.diagnostics;
+
+  // 기수별 인원 + 진단 표
+  const okDiags = diags.filter(d => d.status === 'ok').sort((a, b) => (a.kisu || 0) - (b.kisu || 0));
+  const skipDiags = diags.filter(d => d.status !== 'ok');
+
+  const rangeYears = state.freshmanFilter.rangeYears;
+  const allYears = [...new Set(records.map(r => r.year).filter(v => v != null))].sort((a, b) => b - a);
+  const defaultRangeNote = rangeYears === 'all'
+    ? '전체 기수 표시'
+    : `최근 ${rangeYears}년 기본 표시 (전체 ${allYears.length}년치 데이터 보관됨)`;
+
+  previewEl.classList.remove('hidden');
+  previewEl.innerHTML = `
+    <div class="preview-card" style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:12px;padding:18px 20px;margin-top:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:14px">
+        <div>
+          <div style="font-size:15px;font-weight:600;color:var(--text)">🎓 ${escapeHtml(meta.file.name)}</div>
+          <div style="font-size:12.5px;color:var(--text-muted);margin-top:2px">
+            ${records.length.toLocaleString()}명 · ${okDiags.length}개 기수 시트 인식 · ${defaultRangeNote}
+          </div>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="setUploadMode('freshman'); document.getElementById('fileInput').click()" title="다른 파일로 교체">
+          파일 교체
+        </button>
+      </div>
+
+      <div style="overflow-x:auto;border:1px solid var(--border);border-radius:8px">
+        <table style="width:100%;border-collapse:collapse;font-size:12.5px">
+          <thead style="background:var(--bg-hover)">
+            <tr>
+              <th style="padding:8px 10px;text-align:left;border-bottom:1px solid var(--border)">기수</th>
+              <th style="padding:8px 10px;text-align:left;border-bottom:1px solid var(--border)">학년도</th>
+              <th style="padding:8px 10px;text-align:right;border-bottom:1px solid var(--border)">인식 인원</th>
+              <th style="padding:8px 10px;text-align:right;border-bottom:1px solid var(--border)">총 행수</th>
+              <th style="padding:8px 10px;text-align:left;border-bottom:1px solid var(--border)">감지된 컬럼</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${okDiags.map(d => `
+              <tr>
+                <td style="padding:6px 10px;border-bottom:1px solid var(--border-subtle, var(--border))">${d.kisu}기</td>
+                <td style="padding:6px 10px;border-bottom:1px solid var(--border-subtle, var(--border))">${d.year || '-'}</td>
+                <td style="padding:6px 10px;text-align:right;border-bottom:1px solid var(--border-subtle, var(--border))"><strong>${d.parsed.toLocaleString()}</strong>명</td>
+                <td style="padding:6px 10px;text-align:right;border-bottom:1px solid var(--border-subtle, var(--border));color:var(--text-muted)">${(d.totalRows || 0).toLocaleString()}</td>
+                <td style="padding:6px 10px;border-bottom:1px solid var(--border-subtle, var(--border));color:var(--text-muted);font-size:11.5px">
+                  ${Object.keys(d.detectedColumns || {}).join(', ') || '(없음)'}
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+
+      ${skipDiags.length > 0 ? `
+      <details style="margin-top:10px">
+        <summary style="cursor:pointer;color:var(--text-muted);font-size:12px">건너뛴 시트 ${skipDiags.length}개 (숨김 / 기수 패턴 없음 / 빈 시트)</summary>
+        <ul style="margin:6px 0 0 18px;font-size:12px;color:var(--text-muted)">
+          ${skipDiags.map(d => `<li>${escapeHtml(d.sheet)} — ${d.status}${d.note ? ': ' + escapeHtml(d.note) : ''}</li>`).join('')}
+        </ul>
+      </details>` : ''}
+    </div>
+  `;
 }
 
 function renderFileList() {
@@ -8617,6 +8827,32 @@ function selectMode(mode) {
    START ANALYSIS
    ============================================================ */
 async function startAnalysis() {
+  // 신입생 모드 분기 — state.freshmanData 검사
+  if (state.uploadMode === 'freshman') {
+    if (!state.freshmanData || state.freshmanData.length === 0) {
+      toast('분석할 데이터가 없습니다', '신입생 자료를 먼저 업로드하세요', 'warning');
+      return;
+    }
+    state.analysisMode = 'freshman';
+    LoadingOverlay.show('신입생 분석 중', `${state.freshmanData.length.toLocaleString()}명 처리 중...`);
+    await new Promise(r => setTimeout(r, 60));
+    try {
+      renderResults();
+      document.getElementById('uploadSection').classList.add('hidden');
+      document.getElementById('resultsSection').classList.remove('hidden');
+      document.getElementById('exportDropdown').style.display = '';
+      document.getElementById('breadcrumbCurrent').textContent = '신입생 분석 결과';
+      try { renderSidebar(); } catch (e) { console.warn('[sidebar]', e); }
+      toast('분석 완료', `${state.freshmanData.length.toLocaleString()}명 데이터 분석`, 'success');
+    } catch (err) {
+      console.error('[startAnalysis-freshman]', err);
+      toast('분석 오류', err.message || String(err), 'danger');
+    } finally {
+      LoadingOverlay.hide();
+    }
+    return;
+  }
+
   if (!state.parsedData || state.parsedData.length === 0) {
     toast('분석할 데이터가 없습니다', '엑셀 파일을 먼저 업로드하세요', 'warning');
     return;
@@ -8710,7 +8946,9 @@ function renderResults() {
   });
   Object.keys(charts).forEach(k => delete charts[k]);
 
-  if (state.analysisMode === 'group') {
+  if (state.analysisMode === 'freshman') {
+    renderFreshmanResults();
+  } else if (state.analysisMode === 'group') {
     renderGroupResults();
   } else {
     renderPersonalResults();
@@ -8720,6 +8958,305 @@ function renderResults() {
 
 function renderCurrentTab() {
   if (state.currentTab) switchTab(state.currentTab);
+}
+
+/* ============================================================
+   신입생 분석 모드 — 결과 화면 (a-2: 요약 탭만, a-3에서 분석 탭 확장)
+   ============================================================ */
+
+/* 표시 필터 적용된 신입생 records 반환.
+   - rangeYears='all'이면 전체
+   - rangeYears=N이면 가장 최근 학년도 - (N-1) 이상만
+   - 그 외 필터(전형/지역/중학교/성별/명시 기수)도 추가 적용 */
+function getFreshmanFilteredData() {
+  const all = state.freshmanData || [];
+  if (all.length === 0) return [];
+  const f = state.freshmanFilter || {};
+  let filtered = all;
+
+  // 1. 명시적 기수 선택이 있으면 그게 우선
+  if (Array.isArray(f.kisu) && f.kisu.length > 0) {
+    const set = new Set(f.kisu.map(Number));
+    filtered = filtered.filter(r => set.has(r.kisu));
+  } else if (f.rangeYears !== 'all' && Number.isFinite(f.rangeYears)) {
+    // 2. 그 외에는 최근 N년 기본 표시
+    const years = [...new Set(all.map(r => r.year).filter(v => v != null))].sort((a, b) => b - a);
+    if (years.length > 0) {
+      const cutoff = years[0] - (f.rangeYears - 1);
+      filtered = filtered.filter(r => r.year != null && r.year >= cutoff);
+    }
+  }
+  // 3. 추가 필터들
+  if (f.admissionTypes?.length) {
+    const set = new Set(f.admissionTypes);
+    filtered = filtered.filter(r => set.has(r.admissionType));
+  }
+  if (f.regions?.length) {
+    const set = new Set(f.regions);
+    filtered = filtered.filter(r => set.has(r.region));
+  }
+  if (f.middleSchools?.length) {
+    const set = new Set(f.middleSchools);
+    filtered = filtered.filter(r => set.has(r.middleSchool));
+  }
+  if (f.genders?.length) {
+    const set = new Set(f.genders);
+    filtered = filtered.filter(r => set.has(r.gender));
+  }
+  return filtered;
+}
+
+/* 신입생 모드 사이드바 — 모드 전환 + 필터 + 탭 + 액션 */
+function renderSidebarFreshman() {
+  const all = state.freshmanData || [];
+  const filtered = getFreshmanFilteredData();
+  const f = state.freshmanFilter || {};
+  const activeFilters = (f.kisu?.length || 0) + (f.admissionTypes?.length || 0) + (f.regions?.length || 0) + (f.middleSchools?.length || 0) + (f.genders?.length || 0);
+  const allYears = [...new Set(all.map(r => r.year).filter(v => v != null))].sort((a, b) => b - a);
+  const rangeLabel = f.rangeYears === 'all' ? '전체' : `최근 ${f.rangeYears}년`;
+  const tabs = [
+    { id: 'summary', label: '요약', icon: '📊' },
+    // a-3에서 추가될 탭 placeholder (현재 비활성)
+    // { id: 'school', label: '출신중', icon: '🏫' },
+    // { id: 'region', label: '지역', icon: '🌏' },
+    // { id: 'admission', label: '전형', icon: '🎫' },
+    // { id: 'gender', label: '성비/추세', icon: '⚖' },
+  ];
+  return `
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">신입생 분석</div>
+      ${tabs.map(t => `
+        <button class="sidebar-item ${state.freshmanCurrentTab === t.id ? 'active' : ''}" onclick="switchFreshmanTab('${t.id}')">
+          <span style="font-size:14px;width:18px;display:inline-block">${t.icon}</span>
+          <span class="sidebar-item-label">${t.label}</span>
+        </button>
+      `).join('')}
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-section-label" style="display:flex;align-items:center;justify-content:space-between">
+        <span>표시 범위</span>
+        ${activeFilters > 0 ? `<button class="btn btn-sm btn-ghost" onclick="clearFreshmanFilters()" style="font-size:11px;padding:2px 6px">초기화</button>` : ''}
+      </div>
+      <div style="padding:8px 12px;font-size:12.5px;color:var(--text-muted)">
+        ${filtered.length.toLocaleString()} / ${all.length.toLocaleString()}명<br>
+        <span style="font-size:11px">${rangeLabel} (${allYears.length}년치 보관)</span>
+      </div>
+      <button class="sidebar-item ${f.rangeYears === 5 ? 'active' : ''}" onclick="setFreshmanRange(5)">최근 5년</button>
+      <button class="sidebar-item ${f.rangeYears === 10 ? 'active' : ''}" onclick="setFreshmanRange(10)">최근 10년</button>
+      <button class="sidebar-item ${f.rangeYears === 'all' ? 'active' : ''}" onclick="setFreshmanRange('all')">전체</button>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">관리</div>
+      <button class="sidebar-item" onclick="startNewAnalysis()" title="현재 분석을 비우고 처음부터">
+        <span style="font-size:14px;width:18px;display:inline-block">↺</span>
+        <span class="sidebar-item-label">새 분석 시작</span>
+      </button>
+      <button class="sidebar-item" onclick="openCommandPalette()" title="Ctrl+K">
+        <span style="font-size:14px;width:18px;display:inline-block">⌘</span>
+        <span class="sidebar-item-label">명령 팔레트</span>
+        <span class="sidebar-item-shortcut">⌘K</span>
+      </button>
+      <button class="sidebar-item" onclick="toggleTheme()">
+        <span style="font-size:14px;width:18px;display:inline-block">◐</span>
+        <span class="sidebar-item-label">테마</span>
+      </button>
+    </div>
+  `;
+}
+
+function switchFreshmanTab(tabId) {
+  state.freshmanCurrentTab = tabId;
+  renderFreshmanResults();
+  try { renderSidebar(); } catch (e) {}
+}
+
+function setFreshmanRange(rangeYears) {
+  state.freshmanFilter.rangeYears = rangeYears;
+  state.freshmanFilter.kisu = [];  // 명시 기수 선택 해제
+  renderFreshmanResults();
+  try { renderSidebar(); } catch (e) {}
+}
+
+function clearFreshmanFilters() {
+  state.freshmanFilter = {
+    rangeYears: 5, kisu: [], admissionTypes: [], regions: [], middleSchools: [], genders: [],
+  };
+  renderFreshmanResults();
+  try { renderSidebar(); } catch (e) {}
+}
+
+/* 신입생 모드 결과 화면 — 메인 진입점 */
+function renderFreshmanResults() {
+  const tabsNav = document.getElementById('tabsNav');
+  const tabContents = document.getElementById('tabContents');
+  const filterBar = document.getElementById('filterBar');
+  const contextBar = document.getElementById('contextBar');
+  if (!tabContents) return;
+
+  const filtered = getFreshmanFilteredData();
+  const all = state.freshmanData || [];
+  const f = state.freshmanFilter;
+  const rangeLabel = f.rangeYears === 'all' ? '전체 기수' : `최근 ${f.rangeYears}년`;
+  const allYears = [...new Set(all.map(r => r.year).filter(v => v != null))].sort((a, b) => b - a);
+  const yearMin = filtered.length ? Math.min(...filtered.map(r => r.year).filter(v => v != null)) : null;
+  const yearMax = filtered.length ? Math.max(...filtered.map(r => r.year).filter(v => v != null)) : null;
+
+  if (contextBar) {
+    contextBar.innerHTML = `
+      <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:10px 16px">
+        <strong style="font-size:14px">🎓 신입생 분석</strong>
+        <span style="color:var(--text-muted);font-size:13px">${rangeLabel} · ${yearMin && yearMax ? `${yearMin}~${yearMax}학년도` : ''} · ${filtered.length.toLocaleString()}명</span>
+        ${all.length !== filtered.length ? `<span style="color:var(--text-muted);font-size:12px">전체 ${all.length.toLocaleString()}명 중</span>` : ''}
+      </div>
+    `;
+  }
+  if (filterBar) filterBar.innerHTML = '';
+  if (tabsNav) tabsNav.innerHTML = '';
+
+  // 현재는 요약 탭만 (a-3에서 확장)
+  tabContents.innerHTML = renderFreshmanSummaryTab(filtered, all, allYears);
+}
+
+/* 요약 탭 — KPI + 기수별 표 + 성비 + 전형 분포 + 출신중/지역 TOP */
+function renderFreshmanSummaryTab(filtered, all, allYears) {
+  if (filtered.length === 0) {
+    return `
+      <div class="empty-state" style="padding:40px;text-align:center;color:var(--text-muted)">
+        <div style="font-size:15px;margin-bottom:8px">현재 필터 범위에 데이터가 없습니다</div>
+        <button class="btn btn-secondary btn-sm" onclick="clearFreshmanFilters()">필터 초기화</button>
+      </div>`;
+  }
+
+  // KPI 4개
+  const totalCount = filtered.length;
+  const kisuCount = new Set(filtered.map(r => r.kisu)).size;
+  const avgPerKisu = kisuCount ? Math.round(totalCount / kisuCount) : 0;
+  const genderCounts = filtered.reduce((m, r) => { m[r.gender || '미상'] = (m[r.gender || '미상'] || 0) + 1; return m; }, {});
+  const femalePct = totalCount ? ((genderCounts['여'] || 0) / totalCount * 100).toFixed(1) : '0';
+
+  // 기수별 인원 + 성비
+  const byKisu = {};
+  filtered.forEach(r => {
+    const k = r.kisu;
+    if (!byKisu[k]) byKisu[k] = { total: 0, m: 0, f: 0, year: r.year };
+    byKisu[k].total++;
+    if (r.gender === '남') byKisu[k].m++;
+    else if (r.gender === '여') byKisu[k].f++;
+  });
+  const kisuList = Object.keys(byKisu).map(Number).sort((a, b) => a - b);
+  const maxKisuCount = Math.max(...kisuList.map(k => byKisu[k].total), 1);
+
+  // 전형 분포 TOP
+  const admMap = filtered.reduce((m, r) => { const k = r.admissionType || '(미상)'; m[k] = (m[k] || 0) + 1; return m; }, {});
+  const admEntries = Object.entries(admMap).sort((a, b) => b[1] - a[1]);
+
+  // 출신 중학교 TOP 10
+  const schoolMap = filtered.reduce((m, r) => { const k = r.middleSchool || '(미상)'; m[k] = (m[k] || 0) + 1; return m; }, {});
+  const schoolEntries = Object.entries(schoolMap).sort((a, b) => b[1] - a[1]).slice(0, 10);
+
+  // 출신 지역 TOP 10
+  const regionMap = filtered.reduce((m, r) => { const k = r.region || '(미상)'; m[k] = (m[k] || 0) + 1; return m; }, {});
+  const regionEntries = Object.entries(regionMap).sort((a, b) => b[1] - a[1]).slice(0, 10);
+
+  return `
+    <div style="padding:16px 20px">
+      <!-- KPI 4 -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:12px;margin-bottom:24px">
+        <div class="kpi-card" style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:10px;padding:14px 16px">
+          <div style="font-size:11.5px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em">총 인원</div>
+          <div style="font-size:24px;font-weight:700;color:var(--text);margin-top:4px">${totalCount.toLocaleString()}<span style="font-size:14px;color:var(--text-muted);font-weight:400">명</span></div>
+        </div>
+        <div class="kpi-card" style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:10px;padding:14px 16px">
+          <div style="font-size:11.5px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em">기수 수</div>
+          <div style="font-size:24px;font-weight:700;color:var(--text);margin-top:4px">${kisuCount}<span style="font-size:14px;color:var(--text-muted);font-weight:400">개</span></div>
+        </div>
+        <div class="kpi-card" style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:10px;padding:14px 16px">
+          <div style="font-size:11.5px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em">기수당 평균</div>
+          <div style="font-size:24px;font-weight:700;color:var(--text);margin-top:4px">${avgPerKisu.toLocaleString()}<span style="font-size:14px;color:var(--text-muted);font-weight:400">명</span></div>
+        </div>
+        <div class="kpi-card" style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:10px;padding:14px 16px">
+          <div style="font-size:11.5px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em">여학생 비율</div>
+          <div style="font-size:24px;font-weight:700;color:var(--text);margin-top:4px">${femalePct}<span style="font-size:14px;color:var(--text-muted);font-weight:400">%</span></div>
+        </div>
+      </div>
+
+      <!-- 기수별 인원 표 + 막대 -->
+      <div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:10px;padding:16px 18px;margin-bottom:20px">
+        <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:12px">기수별 인원 & 성비</div>
+        <div style="overflow-x:auto">
+          <table style="width:100%;border-collapse:collapse;font-size:13px">
+            <thead><tr style="background:var(--bg-hover)">
+              <th style="padding:8px 10px;text-align:left;border-bottom:1px solid var(--border)">기수</th>
+              <th style="padding:8px 10px;text-align:left;border-bottom:1px solid var(--border)">학년도</th>
+              <th style="padding:8px 10px;text-align:right;border-bottom:1px solid var(--border)">남</th>
+              <th style="padding:8px 10px;text-align:right;border-bottom:1px solid var(--border)">여</th>
+              <th style="padding:8px 10px;text-align:right;border-bottom:1px solid var(--border)">합계</th>
+              <th style="padding:8px 10px;text-align:right;border-bottom:1px solid var(--border)">여학생%</th>
+              <th style="padding:8px 10px;text-align:left;border-bottom:1px solid var(--border);min-width:200px">분포</th>
+            </tr></thead>
+            <tbody>
+              ${kisuList.map(k => {
+                const d = byKisu[k];
+                const pct = d.total ? (d.f / d.total * 100).toFixed(1) : '-';
+                const w = (d.total / maxKisuCount * 100).toFixed(1);
+                return `<tr>
+                  <td style="padding:6px 10px;border-bottom:1px solid var(--border-subtle, var(--border))"><strong>${k}기</strong></td>
+                  <td style="padding:6px 10px;border-bottom:1px solid var(--border-subtle, var(--border));color:var(--text-muted)">${d.year || '-'}</td>
+                  <td style="padding:6px 10px;text-align:right;border-bottom:1px solid var(--border-subtle, var(--border))">${d.m}</td>
+                  <td style="padding:6px 10px;text-align:right;border-bottom:1px solid var(--border-subtle, var(--border))">${d.f}</td>
+                  <td style="padding:6px 10px;text-align:right;border-bottom:1px solid var(--border-subtle, var(--border))"><strong>${d.total}</strong></td>
+                  <td style="padding:6px 10px;text-align:right;border-bottom:1px solid var(--border-subtle, var(--border));color:var(--text-muted)">${pct}%</td>
+                  <td style="padding:6px 10px;border-bottom:1px solid var(--border-subtle, var(--border))"><div style="background:var(--accent, #2563eb);height:14px;width:${w}%;border-radius:3px"></div></td>
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 전형 분포 -->
+      <div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:10px;padding:16px 18px;margin-bottom:20px">
+        <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:12px">전형 분포</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:8px">
+          ${admEntries.map(([type, count]) => {
+            const pct = (count / totalCount * 100).toFixed(1);
+            return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:var(--bg-hover);border-radius:6px">
+              <span style="font-size:13px;color:var(--text)">${escapeHtml(type)}</span>
+              <span style="font-size:12.5px;color:var(--text-muted)"><strong style="color:var(--text)">${count}</strong>명 (${pct}%)</span>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>
+
+      <!-- 출신 지역 + 출신 중학교 (양옆 배치) -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(320px, 1fr));gap:16px">
+        <div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:10px;padding:16px 18px">
+          <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:12px">출신 지역 TOP 10</div>
+          <table style="width:100%;border-collapse:collapse;font-size:13px">
+            ${regionEntries.map(([r, c]) => `<tr>
+              <td style="padding:5px 0">${escapeHtml(r)}</td>
+              <td style="padding:5px 0;text-align:right;color:var(--text-muted)">${c}명 (${(c/totalCount*100).toFixed(1)}%)</td>
+            </tr>`).join('')}
+          </table>
+        </div>
+        <div style="background:var(--bg-elevated);border:1px solid var(--border);border-radius:10px;padding:16px 18px">
+          <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:12px">출신 중학교 TOP 10</div>
+          <table style="width:100%;border-collapse:collapse;font-size:13px">
+            ${schoolEntries.map(([s, c]) => `<tr>
+              <td style="padding:5px 0">${escapeHtml(s)}</td>
+              <td style="padding:5px 0;text-align:right;color:var(--text-muted)">${c}명</td>
+            </tr>`).join('')}
+          </table>
+        </div>
+      </div>
+
+      <div style="margin-top:20px;padding:12px 16px;background:var(--bg-hover);border-radius:8px;font-size:12.5px;color:var(--text-muted)">
+        💡 단계 a-2 — 요약 탭만 활성화. a-3에서 출신중/지역/전형 상세 분석 + 차트 시각화 추가 예정. 단계 b에서 모의고사 자료와의 매칭(동명이인 처리) → 단계 c에서 결합 분석.
+      </div>
+    </div>
+  `;
 }
 
 /* ============================================================
